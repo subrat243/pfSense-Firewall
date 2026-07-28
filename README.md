@@ -2,6 +2,26 @@
 
 ![pfSense Lab Architecture](architecture/topology.png)
 
+## Lab Architecture
+
+```text
+                Internet
+                    │
+          Home Router (Wi-Fi)
+                    │
+        VirtualBox NAT Adapter
+                    │
+              pfSense Firewall
+                    │
+      ┌─────────────┼─────────────┐
+      │             │             │
+    Mgmt         Cyber         AD
+      │             │             │
+  Security      Malware      (future)
+```
+
+---
+
 ## Overview
 
 This project documents the design, deployment, configuration, and validation of an **Enterprise-grade Virtual Firewall and Network Segmentation Infrastructure** powered by **pfSense Community Edition**.
@@ -38,11 +58,12 @@ Built as the secure core of a cybersecurity home lab environment, this virtual f
 ## Repository Structure
 
 ```text
-01-pfsense-firewall/
+.
 ├── README.md                           # Main Project Documentation & Architecture Overview
 ├── architecture/
 │   ├── network-diagram.drawio          # Draw.io editable network topology source diagram
 │   ├── topology.png                    # Rendered visual topology network diagram
+│   ├── topology.svg                    # Vector graphic network topology diagram
 │   └── ip-plan.md                      # Detailed IP allocation, VLAN, and subnetting plan
 ├── installation/
 │   ├── virtualbox.md                   # VirtualBox VM creation step-by-step guide
