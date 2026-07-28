@@ -1,0 +1,68 @@
+<mxfile host="Electron" modified="2026-07-28T20:30:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="pfsense-topology" name="pfSense Network Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Internet Cloud -->
+        <mxCell id="internet" value="WAN / Internet&#10;(0.0.0.0/0)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- pfSense Router Box -->
+        <mxCell id="pfsense" value="pfSense Enterprise Firewall&#10;(2 vCPU | 1GB RAM | FreeBSD 14)&#10;Gateway Services / NAT / DNS / Stateful Inspection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="200" width="400" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Link Internet to pfSense WAN -->
+        <mxCell id="link-wan" value="WAN (em0: DHCP NAT)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="internet" target="pfsense">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Networks / Segments -->
+        <!-- Management -->
+        <mxCell id="net-mgmt" value="Management (Mgmt)&#10;em1: 10.0.0.1/24&#10;[Admin Console &amp; WebGUI]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Cyber Range -->
+        <mxCell id="net-cyber" value="Cyber Range (Cyber)&#10;em2: 10.10.10.1/24&#10;[Kali / CTF / Targets]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Active Directory -->
+        <mxCell id="net-ad" value="Active Directory (AD)&#10;em3: 10.20.20.1/24&#10;[Domain Controllers / Clients]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Security -->
+        <mxCell id="net-sec" value="Security (Security)&#10;em4: 10.30.30.1/24&#10;[Wazuh / SIEM / Suricata]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce5ff;strokeColor=#3399ff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Malware Sandbox -->
+        <mxCell id="net-malware" value="Malware Sandbox&#10;em5: 10.40.40.1/24&#10;[Isolated Detonation Zone]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Connecting pfSense to Segments -->
+        <mxCell id="l1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="pfsense" target="net-mgmt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1" source="pfsense" target="net-cyber">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="pfsense" target="net-ad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#3399ff;" edge="1" parent="1" source="pfsense" target="net-sec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="pfsense" target="net-malware">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

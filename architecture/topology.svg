@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 600" width="100%" height="100%" style="background-color: #0f172a; font-family: system-ui, -apple-system, sans-serif;">
+  <defs>
+    <linearGradient id="wanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="fwGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="550" y="45" text-anchor="middle" fill="#f8fafc" font-size="22" font-weight="bold" letter-spacing="1">ENTERPRISE PFSENSE LAB TOPOLOGY</text>
+
+  <!-- Internet Cloud -->
+  <g filter="url(#shadow)">
+    <rect x="450" y="80" width="200" height="70" rx="35" fill="url(#wanGrad)"/>
+    <text x="550" y="115" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold">INTERNET / WAN</text>
+    <text x="550" y="135" text-anchor="middle" fill="#93c5fd" font-size="12">Upstream NAT Gateway</text>
+  </g>
+
+  <!-- Line WAN to Firewall -->
+  <line x1="550" y1="150" x2="550" y2="210" stroke="#3b82f6" stroke-width="4" stroke-dasharray="6 6"/>
+  <text x="565" y="185" fill="#60a5fa" font-size="12" font-weight="bold">em0 (DHCP WAN)</text>
+
+  <!-- pfSense Firewall Central Box -->
+  <g filter="url(#shadow)">
+    <rect x="300" y="210" width="500" height="110" rx="12" fill="url(#fwGrad)" stroke="#fca5a5" stroke-width="2"/>
+    <text x="550" y="250" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="bold">pfSense Enterprise Firewall</text>
+    <text x="550" y="275" text-anchor="middle" fill="#fecaca" font-size="13">Stateful Inspection • Unbound DNS • Outbound NAT • DHCP Server</text>
+    <text x="550" y="298" text-anchor="middle" fill="#fee2e2" font-size="12">Hardware Allocation: 2 vCPU | 1024 MB RAM | 20 GB Disk</text>
+  </g>
+
+  <!-- Interconnect Lines -->
+  <path d="M 550 320 L 550 370 L 110 370 L 110 420" fill="none" stroke="#10b981" stroke-width="3"/>
+  <path d="M 550 320 L 550 370 L 330 370 L 330 420" fill="none" stroke="#f59e0b" stroke-width="3"/>
+  <path d="M 550 320 L 550 420" fill="none" stroke="#8b5cf6" stroke-width="3"/>
+  <path d="M 550 320 L 550 370 L 770 370 L 770 420" fill="none" stroke="#06b6d4" stroke-width="3"/>
+  <path d="M 550 320 L 550 370 L 990 370 L 990 420" fill="none" stroke="#f43f5e" stroke-width="3"/>
+
+  <!-- Segment Boxes -->
+  <!-- 1. Management -->
+  <g filter="url(#shadow)">
+    <rect x="20" y="420" width="180" height="130" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+    <text x="110" y="450" text-anchor="middle" fill="#34d399" font-size="15" font-weight="bold">MANAGEMENT</text>
+    <text x="110" y="475" text-anchor="middle" fill="#94a3b8" font-size="12">NIC: em1</text>
+    <text x="110" y="495" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="bold">10.0.0.0/24</text>
+    <text x="110" y="520" text-anchor="middle" fill="#64748b" font-size="11">GW: 10.0.0.1</text>
+    <text x="110" y="538" text-anchor="middle" fill="#94a3b8" font-size="11">Admin Workstations</text>
+  </g>
+
+  <!-- 2. Cyber Range -->
+  <g filter="url(#shadow)">
+    <rect x="240" y="420" width="180" height="130" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+    <text x="330" y="450" text-anchor="middle" fill="#fbbf24" font-size="15" font-weight="bold">CYBER RANGE</text>
+    <text x="330" y="475" text-anchor="middle" fill="#94a3b8" font-size="12">NIC: em2</text>
+    <text x="330" y="495" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="bold">10.10.10.0/24</text>
+    <text x="330" y="520" text-anchor="middle" fill="#64748b" font-size="11">GW: 10.10.10.1</text>
+    <text x="330" y="538" text-anchor="middle" fill="#94a3b8" font-size="11">Kali / CTF Targets</text>
+  </g>
+
+  <!-- 3. Active Directory -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="420" width="180" height="130" rx="10" fill="#1e293b" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="550" y="450" text-anchor="middle" fill="#c084fc" font-size="15" font-weight="bold">ACTIVE DIRECTORY</text>
+    <text x="550" y="475" text-anchor="middle" fill="#94a3b8" font-size="12">NIC: em3</text>
+    <text x="550" y="495" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="bold">10.20.20.0/24</text>
+    <text x="550" y="520" text-anchor="middle" fill="#64748b" font-size="11">GW: 10.20.20.1</text>
+    <text x="550" y="538" text-anchor="middle" fill="#94a3b8" font-size="11">DC01 / Windows Domain</text>
+  </g>
+
+  <!-- 4. Security Ops -->
+  <g filter="url(#shadow)">
+    <rect x="680" y="420" width="180" height="130" rx="10" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+    <text x="770" y="450" text-anchor="middle" fill="#22d3ee" font-size="15" font-weight="bold">SECURITY OPERATIONS</text>
+    <text x="770" y="475" text-anchor="middle" fill="#94a3b8" font-size="12">NIC: em4</text>
+    <text x="770" y="495" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="bold">10.30.30.0/24</text>
+    <text x="770" y="520" text-anchor="middle" fill="#64748b" font-size="11">GW: 10.30.30.1</text>
+    <text x="770" y="538" text-anchor="middle" fill="#94a3b8" font-size="11">Wazuh SIEM / Suricata</text>
+  </g>
+
+  <!-- 5. Malware Sandbox -->
+  <g filter="url(#shadow)">
+    <rect x="900" y="420" width="180" height="130" rx="10" fill="#1e293b" stroke="#f43f5e" stroke-width="2"/>
+    <text x="990" y="450" text-anchor="middle" fill="#fb7185" font-size="15" font-weight="bold">MALWARE SANDBOX</text>
+    <text x="990" y="475" text-anchor="middle" fill="#94a3b8" font-size="12">NIC: em5</text>
+    <text x="990" y="495" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="bold">10.40.40.0/24</text>
+    <text x="990" y="520" text-anchor="middle" fill="#64748b" font-size="11">GW: 10.40.40.1</text>
+    <text x="990" y="538" text-anchor="middle" fill="#fb7185" font-size="11">ISOLATED / ZERO TRUST</text>
+  </g>
+</svg>
