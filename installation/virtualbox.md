@@ -38,40 +38,12 @@ pfSense requires 6 total virtual network interface cards (NICs). Because Virtual
 
 ## Automated Provisioning Script (VBoxManage CLI)
 
-Execute the following commands on the Kali Linux host terminal to create and configure the pfSense VM:
+You can run the standalone provisioning script [installation/setup-vbox-vm.sh](setup-vbox-vm.sh) directly on the Kali Linux host terminal to create and configure the pfSense VM:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-VM_NAME="pfSense-Firewall"
-ISO_PATH="${HOME}/Downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso"
-DISK_PATH="${HOME}/VirtualBox VMs/${VM_NAME}/${VM_NAME}.vdi"
-
-echo "[*] Creating VirtualBox VM: ${VM_NAME}"
-vboxmanage createvm --name "${VM_NAME}" --ostype "FreeBSD_64" --register
-
-echo "[*] Setting RAM and vCPU parameters..."
-vboxmanage modifyvm "${VM_NAME}" \
-    --cpus 2 \
-    --memory 1024 \
-    --vram 16 \
-    --boot1 dvd \
-    --boot2 disk \
-    --rtcuseutc on
-
-echo "[*] Creating 20GB Storage VDI..."
-mkdir -p "${HOME}/VirtualBox VMs/${VM_NAME}"
-vboxmanage createmedium disk --filename "${DISK_PATH}" --size 20480 --format VDI
-
-echo "[*] Attaching Storage Controllers..."
-vboxmanage storagectl "${VM_NAME}" --name "SATA Controller" --add sata --controller IntelAhci
-vboxmanage storageattach "${VM_NAME}" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "${DISK_PATH}"
-
-vboxmanage storagectl "${VM_NAME}" --name "IDE Controller" --add ide
-if [ -f "${ISO_PATH}" ]; then
-    vboxmanage storageattach "${VM_NAME}" --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium "${ISO_PATH}"
-fi
+chmod +x installation/setup-vbox-vm.sh
+./installation/setup-vbox-vm.sh "pfSense" "${HOME}/Downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso"
+```
 
 ## Network Adapter VBoxManage Commands
 
