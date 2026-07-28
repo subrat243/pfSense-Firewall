@@ -73,34 +73,61 @@ if [ -f "${ISO_PATH}" ]; then
     vboxmanage storageattach "${VM_NAME}" --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium "${ISO_PATH}"
 fi
 
-echo "[*] Configuring 6 Network Adapters..."
-# Adapter 1: WAN (NAT)
-vboxmanage modifyvm "${VM_NAME}" --nic1 nat --nictype1 82545EM
+## Network Adapter VBoxManage Commands
 
-# Adapter 2: Management (Internal Network)
-vboxmanage modifyvm "${VM_NAME}" --nic2 intnet --intnet2 intnet-mgmt --nictype2 82545EM --nicpromisc2 allow-all
+Based on **Project 01 - Enterprise Firewall**, configure the network adapters on your VM using the following commands (replace `"pfSense"` with `"pfSense-Firewall"` if your VM name includes the suffix):
 
-# Adapter 3: Cyber Range (Internal Network)
-vboxmanage modifyvm "${VM_NAME}" --nic3 intnet --intnet3 intnet-cyber --nictype3 82545EM --nicpromisc3 allow-all
+```bash
+# Adapter 1 - WAN (NAT)
+VBoxManage modifyvm "pfSense" --nic1 nat
+VBoxManage modifyvm "pfSense" --nictype1 82545EM
 
-# Adapter 4: Active Directory (Internal Network)
-vboxmanage modifyvm "${VM_NAME}" --nic4 intnet --intnet4 intnet-ad --nictype4 82545EM --nicpromisc4 allow-all
+# Adapter 2 - Management
+VBoxManage modifyvm "pfSense" --nic2 intnet
+VBoxManage modifyvm "pfSense" --intnet2 "intnet-mgmt"
+VBoxManage modifyvm "pfSense" --nictype2 82545EM
 
-# Adapter 5: Security Operations (Internal Network)
-vboxmanage modifyvm "${VM_NAME}" --nic5 intnet --intnet5 intnet-security --nictype5 82545EM --nicpromisc5 allow-all
+# Adapter 3 - Cyber Range
+VBoxManage modifyvm "pfSense" --nic3 intnet
+VBoxManage modifyvm "pfSense" --intnet3 "intnet-cyber"
+VBoxManage modifyvm "pfSense" --nictype3 82545EM
 
-# Adapter 6: Malware Sandbox (Internal Network)
-vboxmanage modifyvm "${VM_NAME}" --nic6 intnet --intnet6 intnet-malware --nictype6 82545EM --nicpromisc6 allow-all
+# Adapter 4 - Active Directory
+VBoxManage modifyvm "pfSense" --nic4 intnet
+VBoxManage modifyvm "pfSense" --intnet4 "intnet-ad"
+VBoxManage modifyvm "pfSense" --nictype4 82545EM
 
-echo "[+] VM ${VM_NAME} successfully provisioned!"
+# Adapter 5 - Security Monitoring
+VBoxManage modifyvm "pfSense" --nic5 intnet
+VBoxManage modifyvm "pfSense" --intnet5 "intnet-sec"
+VBoxManage modifyvm "pfSense" --nictype5 82545EM
+
+# Adapter 6 - Malware Analysis
+VBoxManage modifyvm "pfSense" --nic6 intnet
+VBoxManage modifyvm "pfSense" --intnet6 "intnet-malware"
+VBoxManage modifyvm "pfSense" --nictype6 82545EM
 ```
 
 ---
 
-## Verification Command
+## Adapter Configuration Verification
 
-After provisioning, verify the VM specification by running:
+To verify that all 6 network adapters are attached correctly, run:
 
 ```bash
-vboxmanage showvminfo "pfSense-Firewall" | grep -E "NIC|Memory|CPUs"
+VBoxManage showvminfo "pfSense" | grep "NIC"
 ```
+
+### Expected Verification Output
+
+```text
+NIC 1: Attachment: NAT
+NIC 2: Attachment: Internal Network 'intnet-mgmt'
+NIC 3: Attachment: Internal Network 'intnet-cyber'
+NIC 4: Attachment: Internal Network 'intnet-ad'
+NIC 5: Attachment: Internal Network 'intnet-sec'
+NIC 6: Attachment: Internal Network 'intnet-malware'
+```
+
+Once this is complete, proceed to the **[pfSense Installation](pfsense-install.md)** and **[Interface Assignment](interface-assignment.md)**.
+
