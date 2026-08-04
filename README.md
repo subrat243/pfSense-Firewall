@@ -1,24 +1,8 @@
 # Enterprise Firewall & Network Segmentation with pfSense
 
-![pfSense Lab Architecture](architecture/topology.png)
-
 ## Lab Architecture
 
-```text
-                Internet
-                    │
-          Home Router (Wi-Fi)
-                    │
-        VirtualBox NAT Adapter
-                    │
-              pfSense Firewall
-                    │
-      ┌─────────────┼─────────────┐
-      │             │             │
-    Mgmt         Cyber         AD
-      │             │             │
-  Security      Malware      (future)
-```
+![pfSense Lab Architecture](architecture/topology.png)
 
 ---
 
@@ -100,6 +84,7 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 ---
 
 ### Phase 1: Conceptual Understanding & Architecture (The "WHY")
+
 *Before configuring any virtual machines, read these documents to understand the architectural design decisions.*
 
 1. **[Design & Architectural Rationale](architecture/design-rationale.md)**
@@ -112,39 +97,42 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 ---
 
 ### Phase 2: Hypervisor Provisioning & Base OS Setup (The "BUILD")
+
 *Follow these guides sequentially to build the hypervisor virtual machines.*
 
-4. **[VirtualBox Hardware Provisioning Guide](installation/virtualbox.md)** *(or run [`installation/setup-vbox-vm.sh`](installation/setup-vbox-vm.sh))*
+1. **[VirtualBox Hardware Provisioning Guide](installation/virtualbox.md)** *(or run [`installation/setup-vbox-vm.sh`](installation/setup-vbox-vm.sh))*
    * **Purpose**: Allocate 2 vCPUs, 1024 MB RAM, 20 GB VDI disk, and attach 6 Network Adapters (NAT WAN + 5 Internal Networks).
-5. **[pfSense OS Installation Guide](installation/pfsense-install.md)**
+2. **[pfSense OS Installation Guide](installation/pfsense-install.md)**
    * **Purpose**: Boot pfSense ISO, format disk partitions, install FreeBSD base, and complete initial system reboot.
-6. **[Console Interface Assignment Guide](installation/interface-assignment.md)**
+3. **[Console Interface Assignment Guide](installation/interface-assignment.md)**
    * **Purpose**: Assign `em0` to WAN, `em1` to LAN, `em2`–`em5` to OPT1–OPT4, and configure initial LAN IP address (`192.168.1.1` / `10.0.0.1`).
-7. **Ubuntu Management VM Deployment** *(Refer to [Design Rationale](architecture/design-rationale.md#5-dedicated-management-workstation-rationale-why-ubuntu))*
+4. **Ubuntu Management VM Deployment** *(Refer to [Design Rationale](architecture/design-rationale.md#5-dedicated-management-workstation-rationale-why-ubuntu))*
    * **Purpose**: Create Ubuntu VM on `intnet-mgmt`, obtain DHCP lease from pfSense, and launch WebGUI at `https://192.168.1.1` (or `https://10.0.0.1`).
 
 ---
 
 ### Phase 3: WebGUI Services & Policy Enforcement (The "ENFORCE")
+
 *Perform these configurations via the pfSense WebGUI from inside the Ubuntu Management VM.*
 
-8. **[DHCP Server Configuration](installation/dhcp.md)**
+1. **[DHCP Server Configuration](installation/dhcp.md)**
    * **Purpose**: Enable and define DHCP pools (`.100`–`.200`) across Management, Cyber Range, AD, Security, and Malware interfaces.
-9. **[Firewall Rule Matrix & Policies](configuration/firewall-rules.md)** & **[Aliases](configuration/aliases.md)**
+2. **[Firewall Rule Matrix & Policies](configuration/firewall-rules.md)** & **[Aliases](configuration/aliases.md)**
    * **Purpose**: Implement stateful default-deny rules, management access policies, inter-VLAN restrictions, and malware containment.
-10. **[Outbound NAT & Port Forwarding](configuration/nat.md)**
+3. **[Outbound NAT & Port Forwarding](configuration/nat.md)**
     * **Purpose**: Set up Hybrid/Manual Outbound NAT rules for external internet access from authorized internal subnets.
-11. **[Unbound DNS Resolver & Hardening](configuration/dns-resolver.md)**
+4. **[Unbound DNS Resolver & Hardening](configuration/dns-resolver.md)**
     * **Purpose**: Configure pfSense Unbound DNS resolver with Active Directory domain overrides (`.corp.local`).
 
 ---
 
 ### Phase 4: Validation, Verification & Diagnostics (The "VERIFY")
+
 *Validate that all firewall policies work as designed and resolve any issues.*
 
-12. **[Inter-VLAN Connectivity & Validation Matrix](validation/connectivity.md)**
+ 1. **[Inter-VLAN Connectivity & Validation Matrix](validation/connectivity.md)**
     * **Purpose**: Execute cross-subnet ping tests, Nmap scans, and WebGUI access checks to confirm rule enforcement.
-13. **[Troubleshooting & Diagnostics Guide](validation/troubleshooting.md)**
+ 2. **[Troubleshooting & Diagnostics Guide](validation/troubleshooting.md)**
     * **Purpose**: Diagnostic workflows for common errors (DHCP lease failures, WebGUI lockout, DNS loops, VirtualBox adapter mismatches).
 
 ---
