@@ -64,7 +64,8 @@ Built as the secure core of a cybersecurity home lab environment, this virtual f
 │   ├── network-diagram.drawio          # Draw.io editable network topology source diagram
 │   ├── topology.png                    # Rendered visual topology network diagram
 │   ├── topology.svg                    # Vector graphic network topology diagram
-│   └── ip-plan.md                      # Detailed IP allocation, VLAN, and subnetting plan
+│   ├── ip-plan.md                      # Detailed IP allocation, VLAN, and subnetting plan
+│   └── design-rationale.md             # Detailed networking design decisions & isolation rationale
 ├── installation/
 │   ├── virtualbox.md                   # VirtualBox VM creation step-by-step guide
 │   ├── pfsense-install.md              # pfSense ISO installation walkthrough
@@ -85,14 +86,66 @@ Built as the secure core of a cybersecurity home lab environment, this virtual f
 
 ---
 
-## Quick Start & Installation Order
+## Structured Documentation & Learning Roadmap
 
-1. **[VirtualBox Setup](installation/virtualbox.md)**: Create VM with 6 NICs.
-2. **[pfSense OS Installation](installation/pfsense-install.md)**: Install FreeBSD base and pfSense.
-3. **[Interface Assignment](installation/interface-assignment.md)**: Assign `em0` to `em5`.
-4. **[IP Plan & DHCP](architecture/ip-plan.md)**: Apply IP addressing and DHCP pools.
-5. **[Firewall Policy Configuration](configuration/firewall-rules.md)**: Deploy stateful rules and aliases.
-6. **[Validation & Verification](validation/connectivity.md)**: Execute inter-VLAN test suite.
+Follow this step-by-step reading and implementation guide to build a deep theoretical understanding and successfully deploy the lab environment.
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                        STRUCTURED LEARNING PATH                        │
+└────────────────────────────────────────────────────────────────────────┘
+  1. UNDERSTAND ──> 2. PROVISION ──> 3. INSTALL ──> 4. CONFIGURE ──> 5. VERIFY
+```
+
+---
+
+### Phase 1: Conceptual Understanding & Architecture (The "WHY")
+*Before configuring any virtual machines, read these documents to understand the architectural design decisions.*
+
+1. **[Design & Architectural Rationale](architecture/design-rationale.md)**
+   * **Purpose**: Learn *why* pfSense acts as central gateway, *why* 6 NICs simulate enterprise hardware, *why* VirtualBox `intnet-*` isolates host Kali from lab networks, and *why* a dedicated Ubuntu Management VM is used.
+2. **Network Topology Diagrams ([PNG](architecture/topology.png) | [Draw.io](architecture/network-diagram.drawio))**
+   * **Purpose**: Visualize physical interface mappings (`em0`–`em5`), logical security zones, and inter-subnet routing paths.
+3. **[Master IP Allocation & Subnet Plan](architecture/ip-plan.md)**
+   * **Purpose**: Master the CIDR IP schemes (`10.0.0.0/24`, `10.10.10.0/24`, etc.), gateway addresses, static reservations, DHCP lease ranges, and Unbound DNS domain overrides.
+
+---
+
+### Phase 2: Hypervisor Provisioning & Base OS Setup (The "BUILD")
+*Follow these guides sequentially to build the hypervisor virtual machines.*
+
+4. **[VirtualBox Hardware Provisioning Guide](installation/virtualbox.md)** *(or run [`installation/setup-vbox-vm.sh`](installation/setup-vbox-vm.sh))*
+   * **Purpose**: Allocate 2 vCPUs, 1024 MB RAM, 20 GB VDI disk, and attach 6 Network Adapters (NAT WAN + 5 Internal Networks).
+5. **[pfSense OS Installation Guide](installation/pfsense-install.md)**
+   * **Purpose**: Boot pfSense ISO, format disk partitions, install FreeBSD base, and complete initial system reboot.
+6. **[Console Interface Assignment Guide](installation/interface-assignment.md)**
+   * **Purpose**: Assign `em0` to WAN, `em1` to LAN, `em2`–`em5` to OPT1–OPT4, and configure initial LAN IP address (`192.168.1.1` / `10.0.0.1`).
+7. **Ubuntu Management VM Deployment** *(Refer to [Design Rationale](architecture/design-rationale.md#5-dedicated-management-workstation-rationale-why-ubuntu))*
+   * **Purpose**: Create Ubuntu VM on `intnet-mgmt`, obtain DHCP lease from pfSense, and launch WebGUI at `https://192.168.1.1` (or `https://10.0.0.1`).
+
+---
+
+### Phase 3: WebGUI Services & Policy Enforcement (The "ENFORCE")
+*Perform these configurations via the pfSense WebGUI from inside the Ubuntu Management VM.*
+
+8. **[DHCP Server Configuration](installation/dhcp.md)**
+   * **Purpose**: Enable and define DHCP pools (`.100`–`.200`) across Management, Cyber Range, AD, Security, and Malware interfaces.
+9. **[Firewall Rule Matrix & Policies](configuration/firewall-rules.md)** & **[Aliases](configuration/aliases.md)**
+   * **Purpose**: Implement stateful default-deny rules, management access policies, inter-VLAN restrictions, and malware containment.
+10. **[Outbound NAT & Port Forwarding](configuration/nat.md)**
+    * **Purpose**: Set up Hybrid/Manual Outbound NAT rules for external internet access from authorized internal subnets.
+11. **[Unbound DNS Resolver & Hardening](configuration/dns-resolver.md)**
+    * **Purpose**: Configure pfSense Unbound DNS resolver with Active Directory domain overrides (`.corp.local`).
+
+---
+
+### Phase 4: Validation, Verification & Diagnostics (The "VERIFY")
+*Validate that all firewall policies work as designed and resolve any issues.*
+
+12. **[Inter-VLAN Connectivity & Validation Matrix](validation/connectivity.md)**
+    * **Purpose**: Execute cross-subnet ping tests, Nmap scans, and WebGUI access checks to confirm rule enforcement.
+13. **[Troubleshooting & Diagnostics Guide](validation/troubleshooting.md)**
+    * **Purpose**: Diagnostic workflows for common errors (DHCP lease failures, WebGUI lockout, DNS loops, VirtualBox adapter mismatches).
 
 ---
 
