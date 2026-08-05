@@ -79,3 +79,46 @@ Once booted into pfSense OS, the text-based console menu displays:
 - [x] Console menu `0-16` appears successfully.
 - [x] Optical ISO drive detached.
 - [x] Ready for interface assignment.
+
+---
+
+## Step 4 — Verify Internet Egress (Post-Wizard)
+
+Before deploying any virtual machines, confirm that your WAN interface is correctly configured and that pfSense can reach the internet.
+
+1. In the pfSense WebGUI, navigate to **Diagnostics** → **Ping**.
+2. Run the following ping tests:
+
+| Target | Type | Expected Result |
+| :--- | :--- | :--- |
+| `1.1.1.1` | IP Address | Success — verifies WAN routing & NAT are working |
+| `google.com` | Hostname | Success — verifies DNS resolution is functional |
+
+> [!IMPORTANT]
+> If `1.1.1.1` fails, your WAN NAT adapter is misconfigured — check VirtualBox Adapter 1 is set to **NAT** with the **Cable Connected** checkbox ticked.
+> If `1.1.1.1` succeeds but `google.com` fails, pfSense DNS Resolver (`Unbound`) is not running. Navigate to **Services** → **DNS Resolver** and start the service.
+
+---
+
+## Step 6 — Take a Baseline VirtualBox Snapshot (Post-Wizard)
+
+After completing all pfSense post-wizard configuration (Steps 1–5), take a VirtualBox snapshot to preserve this clean baseline state.
+
+1. With the `pfSense-Firewall` VM **running**, open the VirtualBox **Machine** menu.
+2. Select **Take Snapshot…**
+3. Name the snapshot exactly:
+
+   ```
+   01 - Fresh pfSense
+   ```
+
+4. Add a description (optional but recommended):
+
+   ```
+   pfSense 2.7.2 fully configured: interfaces renamed, IPs assigned, DHCP enabled, internet verified, aliases created. Ready for lab VM deployment.
+   ```
+
+5. Click **OK**.
+
+> [!TIP]
+> If anything breaks during subsequent VM deployments, you can instantly restore to this clean baseline via **Machine** → **Restore Snapshot** — without reinstalling pfSense from scratch.

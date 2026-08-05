@@ -111,6 +111,25 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 
 ---
 
+### Phase 2.5: Post-Wizard Initial Configuration Protocol (The "CONFIGURE")
+
+> **Do not start installing VMs yet.** Complete these 6 steps to configure pfSense properly before any lab VMs are deployed.
+
+1. **[Step 1 — Rename Interfaces](installation/interface-assignment.md#step-1--rename-interfaces)** *(in Interface Assignment Guide)*
+   * **Purpose**: Rename `LAN` → `MGMT`, `OPT1` → `CYBER`, `OPT2` → `AD`, `OPT3` → `SECURITY`, `OPT4` → `MALWARE` so firewall rules are human-readable.
+2. **[Step 2 — Configure Each Interface IP](installation/interface-assignment.md#step-2--configure-each-interface-ip--gateway)** *(in Interface Assignment Guide)*
+   * **Purpose**: Assign static gateway IPs (`10.x.x.1/24`) per interface. Each IP becomes the default gateway and DNS server for that subnet.
+3. **[Step 3 — Enable DHCP Across All Subnets](installation/dhcp.md#step-3--enable-dhcp-server-across-all-subnets-post-wizard)** *(in DHCP Configuration Guide)*
+   * **Purpose**: Configure `.100`–`.200` pools on every interface so VMs automatically receive an IP, gateway, and DNS on boot.
+4. **[Step 4 — Verify Internet Egress](installation/pfsense-install.md#step-4--verify-internet-egress-post-wizard)** *(in Installation Guide)*
+   * **Purpose**: Use **Diagnostics → Ping** to ping `1.1.1.1` (NAT check) and `google.com` (DNS check) before deploying any VMs.
+5. **[Step 5 — Create Core Network Aliases](configuration/aliases.md#step-5--create-network-subnet-aliases-post-wizard)** *(in Aliases Guide)*
+   * **Purpose**: Create `MGMT_NET`, `CYBER_NET`, `AD_NET`, `SECURITY_NET`, `MALWARE_NET` aliases used by all downstream firewall rules.
+6. **[Step 6 — Take Baseline VirtualBox Snapshot](installation/pfsense-install.md#step-6--take-a-baseline-virtualbox-snapshot-post-wizard)** *(in Installation Guide)*
+   * **Purpose**: Snapshot the fully configured pfSense VM as `01 - Fresh pfSense` for instant rollback if anything breaks later.
+
+---
+
 ### Phase 3: WebGUI Services & Policy Enforcement (The "ENFORCE")
 
 *Perform these configurations via the pfSense WebGUI from inside the Ubuntu Management VM.*

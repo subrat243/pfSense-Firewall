@@ -14,6 +14,34 @@ pfSense acts as the central DHCP Server for all internal subnets. This document 
 
 ---
 
+## Step 3 — Enable DHCP Server Across All Subnets (Post-Wizard)
+
+Enable the DHCP server on every internal interface via **Services** → **DHCP Server**. Select each interface tab and configure a pool.
+
+> [!TIP]
+> **Why enable DHCP before deploying VMs?**
+> When you boot any new VM, it automatically receives an IP address, default gateway, and DNS resolver — all pre-configured. No manual network setup is needed on guest machines.
+
+### WebGUI Configuration Steps
+
+1. Navigate to **Services** → **DHCP Server**.
+2. Select the interface tab (e.g. `MGMT`, `CYBER`, `AD`, `SECURITY`, `MALWARE`).
+3. Check **Enable DHCP server on [interface] interface**.
+4. Set the **Range** as shown in the table below.
+5. Click **Save** on each tab.
+
+### DHCP Scope Summary Table
+
+| Interface | Subnet | DHCP Pool Start | DHCP Pool End | Offered DNS |
+| :--- | :--- | :--- | :--- | :--- |
+| **MGMT** | `10.0.0.0/24` | `10.0.0.100` | `10.0.0.200` | `10.0.0.1` |
+| **CYBER** | `10.10.10.0/24` | `10.10.10.100` | `10.10.10.200` | `10.10.10.1` |
+| **AD** | `10.20.20.0/24` | `10.20.20.100` | `10.20.20.200` | `10.20.20.10` (DC01) |
+| **SECURITY** | `10.30.30.0/24` | `10.30.30.100` | `10.30.30.200` | `10.30.30.1` |
+| **MALWARE** | `10.40.40.0/24` | `10.40.40.100` | `10.40.40.200` | `10.40.40.1` |
+
+---
+
 ## Detailed DHCP Scope Configuration
 
 ### 1. Management Subnet (`em1` / LAN)

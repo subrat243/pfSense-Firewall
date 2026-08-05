@@ -44,28 +44,53 @@ Once settings finish reloading, the main console menu displays the newly assigne
 
 ![pfSense Console Menu with Assigned Interfaces](../screenshots/08-pfsense-console-menu-assigned.png)
 
+## WebGUI Interface Configuration (Post-Wizard)
+
+Do not start installing virtual machines yet! First, configure pfSense interfaces properly via WebGUI.
+
+### Step 1 — Rename Interfaces
+
+Navigate to **Interfaces** $\rightarrow$ **Interface Assignments** in the pfSense WebGUI:
+
+| Current Interface Name | New Descriptive Name | Driver | Logical Function |
+| :--- | :--- | :--- | :--- |
+| `LAN` | **`MGMT`** | `em1` | Management Network Gateway |
+| `OPT1` | **`CYBER`** | `em2` | Cyber Range Subnet Gateway |
+| `OPT2` | **`AD`** | `em3` | Active Directory Subnet Gateway |
+| `OPT3` | **`SECURITY`** | `em4` | Security Operations Subnet Gateway |
+| `OPT4` | **`MALWARE`** | `em5` | Isolated Malware Sandbox Gateway |
+
+> [!TIP]
+> **Why rename interfaces?**
+> Firewall rules become much easier to read and maintain. Instead of abstract rules like `Allow OPT2 → OPT3`, you will see clean rules like `Allow AD → SECURITY`.
+
 ---
 
-## WebGUI Renaming & Interface Enablement
+### Step 2 — Configure Each Interface IP & Gateway
 
-After logging into the pfSense WebGUI at `https://10.0.0.1`:
+Navigate to **Interfaces** $\rightarrow$ **[Interface Name]** to enable each interface, select **Static IPv4** as IPv4 Configuration Type, and assign these gateway IPs:
 
-1. Navigate to **Interfaces** -> **Interface Assignments**.
-2. Click on **OPT1**, check **Enable Interface**, change IPv4 Configuration Type to **Static IPv4**, change IPv4 Address to `10.10.10.1/24`, and rename description to `CYBER`. Save & Apply.
-3. Click on **OPT2**, check **Enable Interface**, change IPv4 Configuration Type to **Static IPv4**, change IPv4 Address to `10.20.20.1/24`, and rename description to `AD`. Save & Apply.
-4. Click on **OPT3**, check **Enable Interface**, change IPv4 Configuration Type to **Static IPv4**, change IPv4 Address to `10.30.30.1/24`, and rename description to `SECURITY`. Save & Apply.
-5. Click on **OPT4**, check **Enable Interface**, change IPv4 Configuration Type to **Static IPv4**, change IPv4 Address to `10.40.40.1/24`, and rename description to `MALWARE`. Save & Apply.
+| Interface Name | Assigned IP Address (CIDR) | Alternative Subnet Scheme | Gateway Role |
+| :--- | :--- | :--- | :--- |
+| **MGMT** | `10.0.0.1/24` | `192.168.10.1/24` | Default gateway for Management subnet |
+| **CYBER** | `10.10.10.1/24` | `192.168.20.1/24` | Default gateway for Cyber Range subnet |
+| **AD** | `10.20.20.1/24` | `192.168.30.1/24` | Default gateway for Active Directory subnet |
+| **SECURITY** | `10.30.30.1/24` | `192.168.40.1/24` | Default gateway for Security Operations subnet |
+| **MALWARE** | `10.40.40.1/24` | `192.168.50.1/24` | Default gateway for Malware Sandbox subnet |
+
+> [!NOTE]
+> Every interface IP address acts as the **default gateway** and **DNS resolver** for all host devices connected to that specific network segment.
 
 ---
 
 ## Console IP Configuration for Management (LAN / `em1`)
 
-To configure the initial Management IP from console:
+To configure the initial Management IP from console before WebGUI access:
 1. Select Console Option `2` (**Set interface(s) IP address**).
 2. Select interface index for `LAN` (`em1`).
-3. Enter new IPv4 address: `10.0.0.1`
+3. Enter new IPv4 address: `10.0.0.1` (or `192.168.10.1`).
 4. Enter IPv4 subnet mask bit count: `24`
 5. For WAN gateway on LAN, press `Enter` (None).
 6. Enter `y` to enable DHCP server on LAN.
-7. Enter start address: `10.0.0.100`, end address: `10.0.0.200`.
+7. Enter start address: `.100`, end address: `.200`.
 8. Do not revert to HTTP (keep HTTPS).

@@ -16,6 +16,27 @@ pfSense **Aliases** simplify complex firewall rule tables by grouping IP address
 | `Domain_Controllers` | Host(s) | `10.20.20.10`, `10.20.20.11` | Windows Active Directory Domain Controllers |
 | `SIEM_Collectors` | Host(s) | `10.30.30.10`, `10.30.30.20` | Wazuh and Log Management Servers |
 
+### Step 5 — Create Network Subnet Aliases (Post-Wizard)
+
+Before configuring any firewall rules, create these five fundamental **Network** aliases — one per internal subnet. They are referenced throughout all firewall rule policies so you never have to type raw IP ranges repeatedly.
+
+Navigate to **Firewall** → **Aliases** → **IP** tab → **Add**:
+
+| Alias Name | Type | Network / Contents | Description |
+| :--- | :--- | :--- | :--- |
+| `MGMT_NET` | Network | `10.0.0.0/24` | Management subnet — admin workstations & pfSense WebGUI |
+| `CYBER_NET` | Network | `10.10.10.0/24` | Cyber Range subnet — CTF targets & pentest VMs |
+| `AD_NET` | Network | `10.20.20.0/24` | Active Directory subnet — DCs & Windows members |
+| `SECURITY_NET` | Network | `10.30.30.0/24` | Security Operations subnet — SIEM, Wazuh, Suricata |
+| `MALWARE_NET` | Network | `10.40.40.0/24` | Malware Sandbox — fully isolated analysis environment |
+
+After creating each alias, click **Save** then **Apply Changes** once at the end.
+
+> [!TIP]
+> In firewall rules, using `MALWARE_NET` as a source or destination is far clearer than using `10.40.40.0/24`. Aliases also let you update a subnet range in one place and have it cascade across all rules instantly.
+
+---
+
 ### 2. Network Aliases
 
 | Alias Name | Type | Contents | Description |
