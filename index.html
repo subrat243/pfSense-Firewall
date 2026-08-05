@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pfSense Enterprise Firewall &amp; Network Segmentation Lab</title>
+  <meta name="description" content="Enterprise-grade virtual firewall and network segmentation infrastructure powered by pfSense CE — architecture, IP plan, firewall rules, and deployment guide." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET & FOUNDATIONS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #050a18;
+      --bg-surface: #0c1529;
+      --bg-card:    rgba(15, 25, 50, 0.65);
+      --border:     rgba(100, 180, 255, 0.12);
+      --border-glow:rgba(100, 180, 255, 0.35);
+      --text:       #c8d6e5;
+      --text-dim:   #7a8ba0;
+      --text-bright:#eaf0f6;
+      --accent:     #00c6ff;
+      --accent-alt: #6c5ce7;
+      --green:      #00e676;
+      --orange:     #ffa726;
+      --red:        #ff5252;
+      --pink:       #f06292;
+      --cyan:       #4dd0e1;
+      --yellow:     #fdd835;
+      --radius:     14px;
+      --font:       'Inter', system-ui, -apple-system, sans-serif;
+      --mono:       'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ===== ANIMATED BG GRID ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(0, 198, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 198, 255, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridScroll 20s linear infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes gridScroll {
+      to { background-position: 60px 60px; }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+    /* ===== GLOBAL CONTAINERS ===== */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    section {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h1, h2, h3, h4 { color: var(--text-bright); font-weight: 700; }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .section-label::before {
+      content: '';
+      width: 24px; height: 2px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.2;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-bright) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      max-width: 660px;
+      margin-bottom: 48px;
+    }
+
+    /* ===== HERO ===== */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      padding: 40px 0;
+    }
+
+    /* Radial glow behind hero */
+    #hero::before {
+      content: '';
+      position: absolute;
+      width: 900px; height: 900px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,198,255,0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border: 1px solid var(--border-glow);
+      border-radius: 100px;
+      color: var(--accent);
+      background: rgba(0,198,255,0.06);
+      margin-bottom: 28px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+    .hero-badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,230,118,0.5); }
+      50%      { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+    }
+
+    .hero-title {
+      font-size: clamp(2.6rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 50%, var(--accent-alt) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeInUp 0.8s ease-out 0.1s both;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      max-width: 700px;
+      margin: 0 auto 40px;
+      animation: fadeInUp 0.8s ease-out 0.25s both;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat-value {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+    .hero-stat-label {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== NAVBAR ===== */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(5, 10, 24, 0.85);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      transition: box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.4); }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-bright);
+      text-decoration: none;
+    }
+    .nav-logo svg { width: 28px; height: 28px; }
+
+    .nav-links {
+      display: flex;
+      gap: 6px;
+      list-style: none;
+    }
+    .nav-links a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.25s;
+    }
+    .nav-links a:hover {
+      color: var(--accent);
+      background: rgba(0,198,255,0.08);
+    }
+
+    /* ===== NETWORK ANIMATION SECTION ===== */
+    #network-animation {
+      padding: 80px 0 100px;
+    }
+
+    .topology-wrapper {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 20px;
+      overflow: hidden;
+    }
+    .topology-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,198,255,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .topology-svg {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    /* Packet animation along paths */
+    .packet {
+      fill: var(--accent);
+      filter: drop-shadow(0 0 6px var(--accent));
+    }
+
+    .link-line {
+      stroke: rgba(100, 180, 255, 0.2);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .node-glow {
+      animation: nodeGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes nodeGlow {
+      0%   { filter: drop-shadow(0 0 4px rgba(0,198,255,0.3)); }
+      100% { filter: drop-shadow(0 0 14px rgba(0,198,255,0.7)); }
+    }
+
+    /* ===== GLASS CARDS ===== */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: border-color 0.35s, transform 0.35s, box-shadow 0.35s;
+    }
+    .glass-card:hover {
+      border-color: var(--border-glow);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,198,255,0.08);
+    }
+
+    /* ===== SPECS GRID ===== */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .spec-card {
+      text-align: center;
+      padding: 36px 24px;
+    }
+    .spec-icon {
+      width: 52px; height: 52px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      font-size: 1.5rem;
+    }
+    .spec-icon.blue   { background: rgba(0,198,255,0.12); color: var(--accent); }
+    .spec-icon.purple { background: rgba(108,92,231,0.12); color: var(--accent-alt); }
+    .spec-icon.green  { background: rgba(0,230,118,0.12); color: var(--green); }
+    .spec-icon.orange { background: rgba(255,167,38,0.12); color: var(--orange); }
+
+    .spec-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 4px;
+    }
+    .spec-label {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ===== SEGMENTATION TABLE ===== */
+    .seg-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .seg-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .seg-table thead {
+      background: rgba(0,198,255,0.06);
+    }
+    .seg-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .seg-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(100,180,255,0.06);
+      vertical-align: top;
+    }
+    .seg-table tbody tr {
+      transition: background 0.25s;
+    }
+    .seg-table tbody tr:hover {
+      background: rgba(0,198,255,0.04);
+    }
+    .seg-table code {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: rgba(0,198,255,0.08);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--cyan);
+    }
+
+    .zone-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    .zone-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ===== FIREWALL RULES ===== */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .rule-card {
+      padding: 28px;
+    }
+    .rule-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .rule-card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    .rule-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    .rule-card-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    .rule-list {
+      list-style: none;
+    }
+    .rule-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(100,180,255,0.05);
+      font-size: 0.88rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-action {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .rule-action.pass  { background: rgba(0,230,118,0.12); color: var(--green); }
+    .rule-action.block { background: rgba(255,82,82,0.12); color: var(--red); }
+
+    /* ===== LEARNING PATH ===== */
+    .roadmap {
+      position: relative;
+      padding-left: 40px;
+    }
+    .roadmap::before {
+      content: '';
+      position: absolute;
+      left: 15px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent-alt), var(--green));
+      border-radius: 2px;
+    }
+
+    .roadmap-item {
+      position: relative;
+      margin-bottom: 48px;
+    }
+    .roadmap-item:last-child { margin-bottom: 0; }
+
+    .roadmap-dot {
+      position: absolute;
+      left: -33px; top: 4px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 3px solid var(--accent);
+      background: var(--bg-deep);
+      z-index: 2;
+    }
+    .roadmap-item:nth-child(2) .roadmap-dot { border-color: var(--accent-alt); }
+    .roadmap-item:nth-child(3) .roadmap-dot { border-color: var(--orange); }
+    .roadmap-item:nth-child(4) .roadmap-dot { border-color: var(--pink); }
+    .roadmap-item:nth-child(5) .roadmap-dot { border-color: var(--green); }
+
+    .roadmap-phase {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .roadmap-item:nth-child(2) .roadmap-phase { color: var(--accent-alt); }
+    .roadmap-item:nth-child(3) .roadmap-phase { color: var(--orange); }
+    .roadmap-item:nth-child(4) .roadmap-phase { color: var(--pink); }
+    .roadmap-item:nth-child(5) .roadmap-phase { color: var(--green); }
+
+    .roadmap-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+    }
+    .roadmap-desc {
+      font-size: 0.92rem;
+      color: var(--text-dim);
+      max-width: 600px;
+    }
+
+    /* ===== REPO STRUCTURE ===== */
+    .repo-tree {
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      line-height: 2;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      overflow-x: auto;
+      color: var(--text-dim);
+      white-space: pre;
+    }
+    .repo-tree .folder { color: var(--accent); font-weight: 600; }
+    .repo-tree .file   { color: var(--text); }
+    .repo-tree .comment{ color: var(--text-dim); opacity: 0.5; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+    }
+    footer p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ===== SCROLL-REVEAL ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-stats { gap: 24px; }
+      .specs-grid { grid-template-columns: 1fr 1fr; }
+      .rules-grid { grid-template-columns: 1fr; }
+      section { padding: 60px 0; }
+    }
+    @media (max-width: 480px) {
+      .specs-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ====== NAVBAR ====== -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <svg viewBox="0 0 28 28" fill="none">
+          <rect x="2" y="2" width="24" height="24" rx="6" stroke="currentColor" stroke-width="2"/>
+          <path d="M8 14h12M14 8v12" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="14" cy="14" r="3" fill="var(--accent)" opacity="0.3"/>
+        </svg>
+        pfSense Lab
+      </a>
+      <ul class="nav-links">
+        <li><a href="#specs">Specs</a></li>
+        <li><a href="#network-animation">Topology</a></li>
+        <li><a href="#segmentation">Segments</a></li>
+        <li><a href="#firewall">Rules</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#repo">Repository</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ====== HERO ====== -->
+  <section id="hero">
+    <div class="container">
+      <div class="hero-badge"><span class="dot"></span> Cybersecurity Home Lab</div>
+      <h1 class="hero-title">Enterprise Firewall &amp;<br>Network Segmentation</h1>
+      <p class="hero-desc">
+        A production-grade virtual firewall infrastructure powered by <strong>pfSense CE</strong>,
+        isolating five security zones behind stateful packet inspection, outbound NAT, and Unbound DNS — all running on VirtualBox.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value">6</div>
+          <div class="hero-stat-label">Interfaces</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">5</div>
+          <div class="hero-stat-label">Security Zones</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">25+</div>
+          <div class="hero-stat-label">Firewall Rules</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">4</div>
+          <div class="hero-stat-label">Core Services</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SPECS ====== -->
+  <section id="specs">
+    <div class="container">
+      <div class="section-label reveal">Technical Specifications</div>
+      <h2 class="section-title reveal">Architecture at a Glance</h2>
+      <p class="section-subtitle reveal">Built on pfSense CE 2.7.x (FreeBSD 14.0-RELEASE) with enterprise-grade resource allocation and multi-NIC topology.</p>
+
+      <div class="specs-grid">
+        <div class="glass-card spec-card reveal">
+          <div class="spec-icon blue">🛡️</div>
+          <div class="spec-value">pfSense CE 2.7.x</div>
+          <div class="spec-label">Firewall Engine</div>
+        </div>
+        <div class="glass-card spec-card reveal">
+          <div class="spec-icon purple">💻</div>
+          <div class="spec-value">2 vCPU / 1 GB</div>
+          <div class="spec-label">VM Resources</div>
+        </div>
+        <div class="glass-card spec-card reveal">
+          <div class="spec-icon green">📦</div>
+          <div class="spec-value">VirtualBox</div>
+          <div class="spec-label">Hypervisor</div>
+        </div>
+        <div class="glass-card spec-card reveal">
+          <div class="spec-icon orange">🌐</div>
+          <div class="spec-value">6 NICs</div>
+          <div class="spec-label">Network Interfaces</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== NETWORK TOPOLOGY ANIMATION ====== -->
+  <section id="network-animation">
+    <div class="container">
+      <div class="section-label reveal">Live Network Topology</div>
+      <h2 class="section-title reveal">Animated Architecture Diagram</h2>
+      <p class="section-subtitle reveal">Watch packets flow through the firewall — from the Internet through pfSense and into each segmented security zone.</p>
+
+      <div class="topology-wrapper reveal">
+        <svg class="topology-svg" viewBox="0 0 960 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Definitions -->
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <linearGradient id="linkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="rgba(0,198,255,0.1)"/>
+              <stop offset="50%" stop-color="rgba(0,198,255,0.3)"/>
+              <stop offset="100%" stop-color="rgba(0,198,255,0.1)"/>
+            </linearGradient>
+            <radialGradient id="nodeGlowGrad">
+              <stop offset="0%" stop-color="rgba(0,198,255,0.25)"/>
+              <stop offset="100%" stop-color="rgba(0,198,255,0)"/>
+            </radialGradient>
+          </defs>
+
+          <!-- === INTERNET CLOUD === -->
+          <g class="node-glow">
+            <ellipse cx="480" cy="48" rx="90" ry="34" fill="rgba(0,198,255,0.06)" stroke="rgba(0,198,255,0.3)" stroke-width="1.5"/>
+            <text x="480" y="53" text-anchor="middle" fill="#4dd0e1" font-family="Inter, sans-serif" font-size="14" font-weight="700">☁ INTERNET</text>
+          </g>
+
+          <!-- === WAN LINK: Internet → pfSense === -->
+          <line x1="480" y1="82" x2="480" y2="170" class="link-line" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="1.5s" repeatCount="indefinite"/>
+          </line>
+          <circle r="4" class="packet">
+            <animateMotion dur="2s" repeatCount="indefinite">
+              <mpath href="#pathWAN"/>
+            </animateMotion>
+          </circle>
+          <path id="pathWAN" d="M480,82 L480,170" fill="none" stroke="none"/>
+
+          <!-- WAN Label -->
+          <text x="498" y="130" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="10" opacity="0.6">em0 — NAT</text>
+
+          <!-- === pfSense FIREWALL (Central Hub) === -->
+          <g class="node-glow">
+            <circle cx="480" cy="198" r="50" fill="rgba(0,198,255,0.03)"/>
+            <rect x="430" y="172" width="100" height="52" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--accent)" stroke-width="2"/>
+            <text x="480" y="193" text-anchor="middle" fill="var(--accent)" font-family="Inter, sans-serif" font-size="13" font-weight="800">pfSense</text>
+            <text x="480" y="210" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">FIREWALL</text>
+          </g>
+
+          <!-- === LINKS: pfSense → Zones === -->
+          <!-- Management -->
+          <path id="pathMgmt" d="M440,224 Q300,300 160,370" fill="none" stroke="none"/>
+          <line x1="440" y1="224" x2="160" y2="370" class="link-line" stroke="rgba(0,230,118,0.2)" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="1.8s" repeatCount="indefinite"/>
+          </line>
+          <circle r="3.5" fill="var(--green)" filter="url(#glow)">
+            <animateMotion dur="2.5s" repeatCount="indefinite">
+              <mpath href="#pathMgmt"/>
+            </animateMotion>
+          </circle>
+
+          <!-- Cyber Range -->
+          <path id="pathCyber" d="M455,224 Q380,330 310,420" fill="none" stroke="none"/>
+          <line x1="455" y1="224" x2="310" y2="420" class="link-line" stroke="rgba(255,167,38,0.2)" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2.0s" repeatCount="indefinite"/>
+          </line>
+          <circle r="3.5" fill="var(--orange)" filter="url(#glow)">
+            <animateMotion dur="2.8s" repeatCount="indefinite">
+              <mpath href="#pathCyber"/>
+            </animateMotion>
+          </circle>
+
+          <!-- Active Directory -->
+          <path id="pathAD" d="M480,224 L480,420" fill="none" stroke="none"/>
+          <line x1="480" y1="224" x2="480" y2="420" class="link-line" stroke="rgba(108,92,231,0.2)" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="1.6s" repeatCount="indefinite"/>
+          </line>
+          <circle r="3.5" fill="var(--accent-alt)" filter="url(#glow)">
+            <animateMotion dur="2.2s" repeatCount="indefinite">
+              <mpath href="#pathAD"/>
+            </animateMotion>
+          </circle>
+
+          <!-- Security -->
+          <path id="pathSec" d="M505,224 Q580,330 650,420" fill="none" stroke="none"/>
+          <line x1="505" y1="224" x2="650" y2="420" class="link-line" stroke="rgba(77,208,225,0.2)" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2.1s" repeatCount="indefinite"/>
+          </line>
+          <circle r="3.5" fill="var(--cyan)" filter="url(#glow)">
+            <animateMotion dur="3s" repeatCount="indefinite">
+              <mpath href="#pathSec"/>
+            </animateMotion>
+          </circle>
+
+          <!-- Malware -->
+          <path id="pathMal" d="M520,224 Q660,300 800,370" fill="none" stroke="none"/>
+          <line x1="520" y1="224" x2="800" y2="370" class="link-line" stroke="rgba(255,82,82,0.2)" stroke-dasharray="6 4">
+            <animate attributeName="stroke-dashoffset" from="20" to="0" dur="1.9s" repeatCount="indefinite"/>
+          </line>
+          <circle r="3.5" fill="var(--red)" filter="url(#glow)">
+            <animateMotion dur="2.6s" repeatCount="indefinite">
+              <mpath href="#pathMal"/>
+            </animateMotion>
+          </circle>
+
+          <!-- === ZONE NODES === -->
+
+          <!-- Management Zone -->
+          <g>
+            <circle cx="160" cy="370" r="28" fill="rgba(0,230,118,0.04)"/>
+            <rect x="100" y="350" width="120" height="56" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--green)" stroke-width="1.5"/>
+            <text x="160" y="370" text-anchor="middle" fill="var(--green)" font-family="Inter, sans-serif" font-size="11" font-weight="700">MANAGEMENT</text>
+            <text x="160" y="386" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">10.0.0.0/24</text>
+            <text x="160" y="398" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="8" opacity="0.5">em1</text>
+
+            <!-- Sub-nodes -->
+            <rect x="80" y="430" width="70" height="32" rx="6" fill="rgba(0,230,118,0.06)" stroke="rgba(0,230,118,0.15)" stroke-width="1"/>
+            <text x="115" y="450" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">WebGUI</text>
+            <rect x="160" y="430" width="70" height="32" rx="6" fill="rgba(0,230,118,0.06)" stroke="rgba(0,230,118,0.15)" stroke-width="1"/>
+            <text x="195" y="450" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Ubuntu VM</text>
+            <line x1="115" y1="406" x2="115" y2="430" stroke="rgba(0,230,118,0.15)" stroke-width="1"/>
+            <line x1="195" y1="406" x2="195" y2="430" stroke="rgba(0,230,118,0.15)" stroke-width="1"/>
+          </g>
+
+          <!-- Cyber Range Zone -->
+          <g>
+            <rect x="250" y="400" width="120" height="56" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--orange)" stroke-width="1.5"/>
+            <text x="310" y="420" text-anchor="middle" fill="var(--orange)" font-family="Inter, sans-serif" font-size="11" font-weight="700">CYBER RANGE</text>
+            <text x="310" y="436" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">10.10.10.0/24</text>
+            <text x="310" y="448" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="8" opacity="0.5">em2</text>
+
+            <rect x="240" y="478" width="65" height="32" rx="6" fill="rgba(255,167,38,0.06)" stroke="rgba(255,167,38,0.15)" stroke-width="1"/>
+            <text x="272" y="498" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Kali</text>
+            <rect x="315" y="478" width="65" height="32" rx="6" fill="rgba(255,167,38,0.06)" stroke="rgba(255,167,38,0.15)" stroke-width="1"/>
+            <text x="347" y="498" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Targets</text>
+            <line x1="272" y1="456" x2="272" y2="478" stroke="rgba(255,167,38,0.15)" stroke-width="1"/>
+            <line x1="347" y1="456" x2="347" y2="478" stroke="rgba(255,167,38,0.15)" stroke-width="1"/>
+          </g>
+
+          <!-- Active Directory Zone -->
+          <g>
+            <rect x="420" y="420" width="120" height="56" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--accent-alt)" stroke-width="1.5"/>
+            <text x="480" y="440" text-anchor="middle" fill="var(--accent-alt)" font-family="Inter, sans-serif" font-size="11" font-weight="700">ACTIVE DIR</text>
+            <text x="480" y="456" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">10.20.20.0/24</text>
+            <text x="480" y="468" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="8" opacity="0.5">em3</text>
+
+            <rect x="415" y="498" width="65" height="32" rx="6" fill="rgba(108,92,231,0.06)" stroke="rgba(108,92,231,0.15)" stroke-width="1"/>
+            <text x="447" y="518" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">DC01</text>
+            <rect x="490" y="498" width="65" height="32" rx="6" fill="rgba(108,92,231,0.06)" stroke="rgba(108,92,231,0.15)" stroke-width="1"/>
+            <text x="522" y="518" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Win11</text>
+            <line x1="447" y1="476" x2="447" y2="498" stroke="rgba(108,92,231,0.15)" stroke-width="1"/>
+            <line x1="522" y1="476" x2="522" y2="498" stroke="rgba(108,92,231,0.15)" stroke-width="1"/>
+          </g>
+
+          <!-- Security Zone -->
+          <g>
+            <rect x="590" y="400" width="120" height="56" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--cyan)" stroke-width="1.5"/>
+            <text x="650" y="420" text-anchor="middle" fill="var(--cyan)" font-family="Inter, sans-serif" font-size="11" font-weight="700">SECURITY</text>
+            <text x="650" y="436" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">10.30.30.0/24</text>
+            <text x="650" y="448" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="8" opacity="0.5">em4</text>
+
+            <rect x="585" y="478" width="65" height="32" rx="6" fill="rgba(77,208,225,0.06)" stroke="rgba(77,208,225,0.15)" stroke-width="1"/>
+            <text x="617" y="498" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Wazuh</text>
+            <rect x="660" y="478" width="65" height="32" rx="6" fill="rgba(77,208,225,0.06)" stroke="rgba(77,208,225,0.15)" stroke-width="1"/>
+            <text x="692" y="498" text-anchor="middle" fill="var(--text-dim)" font-size="8" font-family="JetBrains Mono, monospace">Suricata</text>
+            <line x1="617" y1="456" x2="617" y2="478" stroke="rgba(77,208,225,0.15)" stroke-width="1"/>
+            <line x1="692" y1="456" x2="692" y2="478" stroke="rgba(77,208,225,0.15)" stroke-width="1"/>
+          </g>
+
+          <!-- Malware Zone -->
+          <g>
+            <rect x="740" y="350" width="120" height="56" rx="12" fill="rgba(12,21,41,0.95)" stroke="var(--red)" stroke-width="1.5"/>
+            <text x="800" y="370" text-anchor="middle" fill="var(--red)" font-family="Inter, sans-serif" font-size="11" font-weight="700">MALWARE</text>
+            <text x="800" y="386" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="9">10.40.40.0/24</text>
+            <text x="800" y="398" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono, monospace" font-size="8" opacity="0.5">em5</text>
+
+            <!-- Isolation marker -->
+            <rect x="752" y="416" width="96" height="22" rx="4" fill="rgba(255,82,82,0.08)" stroke="rgba(255,82,82,0.2)" stroke-width="1"/>
+            <text x="800" y="431" text-anchor="middle" fill="var(--red)" font-size="8" font-weight="600" font-family="JetBrains Mono, monospace">🔒 ISOLATED</text>
+
+            <rect x="740" y="450" width="55" height="32" rx="6" fill="rgba(255,82,82,0.06)" stroke="rgba(255,82,82,0.15)" stroke-width="1"/>
+            <text x="767" y="470" text-anchor="middle" fill="var(--text-dim)" font-size="7" font-family="JetBrains Mono, monospace">FLARE-VM</text>
+            <rect x="805" y="450" width="55" height="32" rx="6" fill="rgba(255,82,82,0.06)" stroke="rgba(255,82,82,0.15)" stroke-width="1"/>
+            <text x="832" y="470" text-anchor="middle" fill="var(--text-dim)" font-size="7" font-family="JetBrains Mono, monospace">Cuckoo</text>
+            <line x1="767" y1="438" x2="767" y2="450" stroke="rgba(255,82,82,0.15)" stroke-width="1"/>
+            <line x1="832" y1="438" x2="832" y2="450" stroke="rgba(255,82,82,0.15)" stroke-width="1"/>
+          </g>
+
+          <!-- === TRAFFIC FLOW LEGEND === -->
+          <g transform="translate(30, 540)">
+            <text fill="var(--text-dim)" font-size="10" font-weight="600" font-family="Inter, sans-serif" letter-spacing="1.5" text-transform="uppercase">TRAFFIC FLOW</text>
+            <g transform="translate(0, 18)">
+              <circle cx="6" cy="6" r="4" fill="var(--green)"/>
+              <text x="18" y="10" fill="var(--text-dim)" font-size="9" font-family="Inter, sans-serif">Management — Full access</text>
+            </g>
+            <g transform="translate(0, 36)">
+              <circle cx="6" cy="6" r="4" fill="var(--orange)"/>
+              <text x="18" y="10" fill="var(--text-dim)" font-size="9" font-family="Inter, sans-serif">Cyber Range — Limited cross-subnet</text>
+            </g>
+            <g transform="translate(220, 18)">
+              <circle cx="6" cy="6" r="4" fill="var(--accent-alt)"/>
+              <text x="18" y="10" fill="var(--text-dim)" font-size="9" font-family="Inter, sans-serif">Active Dir — Isolated from Cyber &amp; Malware</text>
+            </g>
+            <g transform="translate(220, 36)">
+              <circle cx="6" cy="6" r="4" fill="var(--cyan)"/>
+              <text x="18" y="10" fill="var(--text-dim)" font-size="9" font-family="Inter, sans-serif">Security — Receives all log streams</text>
+            </g>
+            <g transform="translate(500, 18)">
+              <circle cx="6" cy="6" r="4" fill="var(--red)"/>
+              <text x="18" y="10" fill="var(--text-dim)" font-size="9" font-family="Inter, sans-serif">Malware — Zero cross-VLAN (sandboxed)</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== NETWORK SEGMENTATION ====== -->
+  <section id="segmentation">
+    <div class="container">
+      <div class="section-label reveal">Network Segmentation</div>
+      <h2 class="section-title reveal">Security Zone Breakdown</h2>
+      <p class="section-subtitle reveal">Each interface maps to an isolated internal network with unique CIDR addressing, DHCP pools, and access policies.</p>
+
+      <div class="seg-table-wrap reveal">
+        <table class="seg-table">
+          <thead>
+            <tr>
+              <th>Interface</th>
+              <th>Zone</th>
+              <th>Subnet</th>
+              <th>Gateway</th>
+              <th>DHCP Pool</th>
+              <th>Access Policy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>em0</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--accent)"></span> WAN</span></td>
+              <td>DHCP (NAT)</td>
+              <td>Variable</td>
+              <td>Upstream</td>
+              <td>External internet gateway</td>
+            </tr>
+            <tr>
+              <td><code>em1</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--green)"></span> Management</span></td>
+              <td><code>10.0.0.0/24</code></td>
+              <td><code>10.0.0.1</code></td>
+              <td><code>.100 – .200</code></td>
+              <td>Full admin access to all zones &amp; WebGUI</td>
+            </tr>
+            <tr>
+              <td><code>em2</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--orange)"></span> Cyber Range</span></td>
+              <td><code>10.10.10.0/24</code></td>
+              <td><code>10.10.10.1</code></td>
+              <td><code>.100 – .200</code></td>
+              <td>Internet ✓ | Cross-subnet selective</td>
+            </tr>
+            <tr>
+              <td><code>em3</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--accent-alt)"></span> Active Directory</span></td>
+              <td><code>10.20.20.0/24</code></td>
+              <td><code>10.20.20.1</code></td>
+              <td><code>.100 – .200</code></td>
+              <td>Internet ✓ | Isolated from Cyber &amp; Malware</td>
+            </tr>
+            <tr>
+              <td><code>em4</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--cyan)"></span> Security</span></td>
+              <td><code>10.30.30.0/24</code></td>
+              <td><code>10.30.30.1</code></td>
+              <td><code>.100 – .200</code></td>
+              <td>Receives syslog/SIEM from all zones</td>
+            </tr>
+            <tr>
+              <td><code>em5</code></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--red)"></span> Malware</span></td>
+              <td><code>10.40.40.0/24</code></td>
+              <td><code>10.40.40.1</code></td>
+              <td><code>.100 – .200</code></td>
+              <td>🔒 Zero cross-VLAN — fully sandboxed</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FIREWALL RULES ====== -->
+  <section id="firewall">
+    <div class="container">
+      <div class="section-label reveal">Stateful Firewall Policy</div>
+      <h2 class="section-title reveal">Security Rule Matrix</h2>
+      <p class="section-subtitle reveal">Top-to-bottom, first-match-wins rule processing with default-deny posture across all interfaces.</p>
+
+      <div class="rules-grid">
+        <!-- Management -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(0,230,118,0.12);color:var(--green);">🛡</div>
+            <div>
+              <div class="rule-card-title">Management (em1)</div>
+              <div class="rule-card-sub">10.0.0.0/24</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action pass">PASS</span> Admin hosts → WebGUI &amp; SSH</li>
+            <li><span class="rule-action pass">PASS</span> DNS queries → pfSense resolver</li>
+            <li><span class="rule-action pass">PASS</span> Outbound Internet access</li>
+            <li><span class="rule-action pass">PASS</span> Full access to all internal subnets</li>
+            <li><span class="rule-action block">DENY</span> Default deny catch-all</li>
+          </ul>
+        </div>
+
+        <!-- Cyber Range -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(255,167,38,0.12);color:var(--orange);">⚔</div>
+            <div>
+              <div class="rule-card-title">Cyber Range (em2)</div>
+              <div class="rule-card-sub">10.10.10.0/24</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action pass">PASS</span> DNS → pfSense Unbound</li>
+            <li><span class="rule-action pass">PASS</span> Security logs → Wazuh/SIEM</li>
+            <li><span class="rule-action pass">PASS</span> Attack traffic → AD targets</li>
+            <li><span class="rule-action block">DENY</span> Block access to Management net</li>
+            <li><span class="rule-action pass">PASS</span> Outbound Internet for updates</li>
+          </ul>
+        </div>
+
+        <!-- Active Directory -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(108,92,231,0.12);color:var(--accent-alt);">🏢</div>
+            <div>
+              <div class="rule-card-title">Active Directory (em3)</div>
+              <div class="rule-card-sub">10.20.20.0/24</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action pass">PASS</span> DNS → local resolver</li>
+            <li><span class="rule-action pass">PASS</span> AD audit logs → SIEM</li>
+            <li><span class="rule-action block">DENY</span> Block access to Management net</li>
+            <li><span class="rule-action pass">PASS</span> Internet for WSUS / NTP</li>
+          </ul>
+        </div>
+
+        <!-- Security Ops -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(77,208,225,0.12);color:var(--cyan);">📡</div>
+            <div>
+              <div class="rule-card-title">Security Ops (em4)</div>
+              <div class="rule-card-sub">10.30.30.0/24</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action pass">PASS</span> DNS → pfSense</li>
+            <li><span class="rule-action pass">PASS</span> SIEM scanners → internal hosts</li>
+            <li><span class="rule-action pass">PASS</span> Internet for threat intel feeds</li>
+          </ul>
+        </div>
+
+        <!-- Malware -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(255,82,82,0.12);color:var(--red);">☣</div>
+            <div>
+              <div class="rule-card-title">Malware Sandbox (em5)</div>
+              <div class="rule-card-sub">10.40.40.0/24</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action pass">PASS</span> DNS (intercepted / sinkholed)</li>
+            <li><span class="rule-action block">DENY</span> ALL inter-VLAN access blocked</li>
+            <li><span class="rule-action block">DENY</span> Direct WAN access blocked</li>
+            <li><span class="rule-action pass">PASS</span> Optional controlled detonation</li>
+          </ul>
+        </div>
+
+        <!-- Core Principles -->
+        <div class="glass-card rule-card reveal">
+          <div class="rule-card-header">
+            <div class="rule-card-icon" style="background:rgba(253,216,53,0.12);color:var(--yellow);">📜</div>
+            <div>
+              <div class="rule-card-title">Global Principles</div>
+              <div class="rule-card-sub">All Interfaces</div>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="rule-action block">DENY</span> Default deny all inbound &amp; inter-subnet</li>
+            <li><span class="rule-action pass">PASS</span> Stateful return traffic auto-permitted</li>
+            <li><span class="rule-action pass">PASS</span> Top-to-bottom, first-match-wins</li>
+            <li><span class="rule-action block">DENY</span> Malware zone — zero cross-VLAN</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LEARNING ROADMAP ====== -->
+  <section id="roadmap">
+    <div class="container">
+      <div class="section-label reveal">Implementation Roadmap</div>
+      <h2 class="section-title reveal">Structured Learning Path</h2>
+      <p class="section-subtitle reveal">Follow this five-phase roadmap to build a deep understanding and successfully deploy the entire lab.</p>
+
+      <div class="roadmap reveal">
+        <div class="roadmap-item">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-phase">Phase 1 — Understand</div>
+          <div class="roadmap-title">Conceptual Architecture &amp; Design</div>
+          <div class="roadmap-desc">Study the design rationale, network topology diagrams, and master IP allocation plan. Understand <em>why</em> pfSense acts as the central gateway with 6 NICs emulating enterprise hardware.</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-phase">Phase 2 — Provision</div>
+          <div class="roadmap-title">Hypervisor &amp; Base OS Setup</div>
+          <div class="roadmap-desc">Create VirtualBox VMs with proper resource allocation. Install pfSense CE, assign console interfaces (em0–em5), and deploy the Ubuntu management workstation.</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-phase">Phase 2.5 — Configure</div>
+          <div class="roadmap-title">Post-Wizard Configuration Protocol</div>
+          <div class="roadmap-desc">Rename interfaces, assign static gateway IPs, enable DHCP pools, verify internet egress, create network aliases, and take a baseline VirtualBox snapshot.</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-phase">Phase 3 — Enforce</div>
+          <div class="roadmap-title">WebGUI Services &amp; Policy Enforcement</div>
+          <div class="roadmap-desc">Configure DHCP scopes, implement stateful default-deny firewall rules, set up outbound NAT &amp; port forwarding, and harden Unbound DNS resolver with AD domain overrides.</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-phase">Phase 4 — Verify</div>
+          <div class="roadmap-title">Validation &amp; Diagnostics</div>
+          <div class="roadmap-desc">Execute cross-subnet ping tests, Nmap scans, and WebGUI access checks. Use the troubleshooting guide for DHCP failures, DNS loops, and adapter mismatches.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== REPOSITORY STRUCTURE ====== -->
+  <section id="repo">
+    <div class="container">
+      <div class="section-label reveal">Repository Structure</div>
+      <h2 class="section-title reveal">Project File Organization</h2>
+      <p class="section-subtitle reveal">Every configuration decision, installation step, and validation procedure is documented and version-controlled.</p>
+
+      <div class="repo-tree reveal"><span class="folder">.</span>
+├── <span class="file">README.md</span>                           <span class="comment"># Project Documentation & Architecture Overview</span>
+├── <span class="folder">architecture/</span>
+│   ├── <span class="file">network-diagram.drawio</span>          <span class="comment"># Editable network topology source</span>
+│   ├── <span class="file">topology.png</span>                    <span class="comment"># Rendered topology diagram</span>
+│   ├── <span class="file">topology.svg</span>                    <span class="comment"># Vector topology diagram</span>
+│   ├── <span class="file">ip-plan.md</span>                      <span class="comment"># IP allocation & subnetting plan</span>
+│   └── <span class="file">design-rationale.md</span>             <span class="comment"># Design decisions & isolation rationale</span>
+├── <span class="folder">installation/</span>
+│   ├── <span class="file">virtualbox.md</span>                   <span class="comment"># VirtualBox VM creation guide</span>
+│   ├── <span class="file">pfsense-install.md</span>              <span class="comment"># pfSense ISO installation walkthrough</span>
+│   ├── <span class="file">interface-assignment.md</span>         <span class="comment"># NIC mapping (em0–em5)</span>
+│   └── <span class="file">dhcp.md</span>                         <span class="comment"># DHCP scope configuration</span>
+├── <span class="folder">configuration/</span>
+│   ├── <span class="file">firewall-rules.md</span>               <span class="comment"># Firewall rules matrix & policy logic</span>
+│   ├── <span class="file">dns-resolver.md</span>                 <span class="comment"># Unbound DNS & hardening</span>
+│   ├── <span class="file">nat.md</span>                          <span class="comment"># Outbound NAT & port forwarding</span>
+│   └── <span class="file">aliases.md</span>                      <span class="comment"># Firewall aliases definition</span>
+├── <span class="folder">validation/</span>
+│   ├── <span class="file">connectivity.md</span>                 <span class="comment"># Inter-VLAN routing & ping matrix</span>
+│   └── <span class="file">troubleshooting.md</span>              <span class="comment"># Diagnostic solutions</span>
+└── <span class="folder">backup/</span>
+    └── <span class="file">config.xml</span>                      <span class="comment"># Exported pfSense configuration</span></div>
+    </div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+  <footer>
+    <div class="container">
+      <p>Enterprise Firewall &amp; Network Segmentation Lab — Built with <a href="https://www.pfsense.org/" target="_blank" rel="noopener">pfSense CE</a> · MIT License</p>
+    </div>
+  </footer>
+
+  <!-- ====== SCRIPTS ====== -->
+  <script>
+    // Navbar scroll effect
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // Scroll-reveal observer
+    const revealEls = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    revealEls.forEach(el => revealObserver.observe(el));
+
+    // Smooth anchor scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
