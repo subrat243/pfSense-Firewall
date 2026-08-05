@@ -38,6 +38,12 @@ pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel P
      * OPT4 -> `em5`
    * Type `y` and press `Enter` to commit changes.
 
+![pfSense Console Interface Assignment Output](../screenshots/07-pfsense-interface-assignment.png)
+
+Once settings finish reloading, the main console menu displays the newly assigned interfaces:
+
+![pfSense Console Menu with Assigned Interfaces](../screenshots/08-pfsense-console-menu-assigned.png)
+
 ---
 
 ## WebGUI Renaming & Interface Enablement

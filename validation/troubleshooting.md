@@ -62,3 +62,15 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 * **Resolution**:
   1. Go to **Services** -> **DNS Resolver**. Verify service status icon is green (Running).
   2. Under **Network Interfaces**, select **All** to ensure Unbound responds on all internal subnets.
+
+---
+
+### Issue 6: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
+
+![VirtualBox Linux Kernel Panic Diagnostic Screen](../screenshots/09-troubleshooting-kernel-panic.png)
+
+* **Symptom**: Client virtual machine (e.g. Linux guest) fails to boot, printing `Kernel panic - not syncing: No working init found. Try passing init= option to kernel.`
+* **Root Cause**: Virtual disk image corruption, missing/corrupted initramfs image, or improper CPU/storage controller attachment in VirtualBox.
+* **Resolution**:
+  1. Boot into GRUB recovery mode or live ISO environment to reinstall/repair the initramfs (`update-initramfs -u -k all`).
+  2. Verify VM storage controller settings in VirtualBox: ensure VDI/VMDK virtual disk is attached under AHCI (SATA) controller rather than IDE, and PAE/NX is enabled in VM CPU settings.

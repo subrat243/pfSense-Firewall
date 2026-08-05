@@ -16,6 +16,9 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 ---
 
 ### Step 2: Installer Options
+
+![pfSense Installer Welcome Screen](../screenshots/02-pfsense-install-welcome.png)
+
 1. On the main installer menu select:
    * **`Install`**: (Install pfSense) and press `Enter`.
 2. **Keymap Selection**: Keep default (`Test and continue with default keymap`).
@@ -27,8 +30,15 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 ---
 
 ### Step 3: Installation & Reboot
+
 1. The installer will extract base distribution tarballs (`base.txz`, `kernel.txz`).
+
+![pfSense Installer Extracting Base System Files](../screenshots/03-pfsense-install-extracting.png)
+
 2. Upon completion, select `<No>` when prompted to open a shell for manual modification.
+
+![pfSense Installation Complete Prompt](../screenshots/04-pfsense-install-complete.png)
+
 3. Select `<Reboot>`.
 4. Immediately unmount the ISO from VirtualBox Optical Drive (`vboxmanage storageattach "pfSense-Firewall" --storagectl "IDE Controller" --port 0 --device 0 --medium none`) to prevent booting back into the installer.
 
@@ -36,7 +46,13 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 
 ## Console Initial Configuration Screen
 
+During system boot, pfSense initializes network drivers and services:
+
+![pfSense Console Boot Process](../screenshots/05-pfsense-console-booting.png)
+
 Once booted into pfSense OS, the text-based console menu displays:
+
+![pfSense Console Initial Options Menu](../screenshots/06-pfsense-console-menu-initial.png)
 
 ```text
 *** Welcome to pfSense 2.7.2-RELEASE (amd64) ***

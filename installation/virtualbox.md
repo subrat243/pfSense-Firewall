@@ -84,6 +84,8 @@ VBoxManage modifyvm "pfSense" --nictype6 82545EM
 
 ## Adapter Configuration Verification
 
+![VirtualBox Network Adapter Configuration](../screenshots/01-vbox-network-adapters.png)
+
 To verify that all 6 network adapters are attached correctly, run:
 
 ```bash
