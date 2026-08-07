@@ -71,3 +71,5 @@ pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are 
 | **2** | **Block**| IPv4 * | `MALWARE net` | * | `RFC1918_Networks` | * | **CRITICAL: Block all inter-VLAN access to internal networks** |
 | **3** | **Block**| IPv4 * | `MALWARE net` | * | `WAN Address` | * | Block direct access to host WAN |
 | **4** | Pass | IPv4 * | `MALWARE net` | * | ! `RFC1918_Networks` | * | (Optional) Controlled Inet detonation via INetSim / Tor |
+
+<!-- minimal update -->

@@ -50,3 +50,5 @@ server:
   local-zone: "malicious-c2-domain.com" redirect
   local-data: "malicious-c2-domain.com A 127.0.0.1"
 ```
+
+<!-- minimal update -->

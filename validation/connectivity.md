@@ -61,3 +61,5 @@ To inspect dropped connection attempts in real-time on pfSense console:
 # SSH into pfSense or open Console Shell (Option 8)
 clog -f /var/log/filter.log | grep "block"
 ```
+
+<!-- minimal update -->

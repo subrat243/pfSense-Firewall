@@ -105,3 +105,5 @@ NIC 6: Attachment: Internal Network 'intnet-malware'
 
 Once this is complete, proceed to the **[pfSense Installation](pfsense-install.md)** and **[Interface Assignment](interface-assignment.md)**.
 
+
+<!-- minimal update -->

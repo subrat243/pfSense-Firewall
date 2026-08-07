@@ -74,3 +74,5 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 * **Resolution**:
   1. Boot into GRUB recovery mode or live ISO environment to reinstall/repair the initramfs (`update-initramfs -u -k all`).
   2. Verify VM storage controller settings in VirtualBox: ensure VDI/VMDK virtual disk is attached under AHCI (SATA) controller rather than IDE, and PAE/NX is enabled in VM CPU settings.
+
+<!-- minimal update -->

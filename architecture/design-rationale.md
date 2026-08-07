@@ -137,3 +137,5 @@ Malware Sandbox (10.40.40.0/24) ────> Zero Cross-Subnet Access | Isolate
 - [x] Assigned **LAN (`em1`)** to isolated Internal Network `intnet-mgmt`.
 - [x] Assigned **OPT1–OPT4 (`em2`–`em5`)** to dedicated Internal Networks (`intnet-cyber`, `intnet-ad`, `intnet-sec`, `intnet-malware`).
 - [x] Provisioning Ubuntu Management Workstation on `intnet-mgmt` to perform initial WebGUI setup and subnet configuration.
+
+<!-- minimal update -->

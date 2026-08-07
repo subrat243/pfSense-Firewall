@@ -11,3 +11,5 @@ This directory contains visual captures of VirtualBox hardware setup, pfSense OS
 7. `07-pfsense-interface-assignment.png` - Console interface assignment wizard mapping `em0`–`em5`.
 8. `08-pfsense-console-menu-assigned.png` - Console options menu after mapping WAN, LAN, and OPT1–OPT4.
 9. `09-troubleshooting-kernel-panic.png` - VirtualBox VM boot failure with Linux kernel panic diagnostic screen.
+
+<!-- minimal update -->

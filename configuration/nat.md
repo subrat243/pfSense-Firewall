@@ -46,3 +46,5 @@ To expose internal services (such as a CTF Web server or Wazuh Agent listener) t
    * Redirect target port: `443`
    * Filter rule association: `Add associated filter rule`
 4. Click **Save** and **Apply Changes**.
+
+<!-- minimal update -->

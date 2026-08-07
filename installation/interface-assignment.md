@@ -94,3 +94,5 @@ To configure the initial Management IP from console before WebGUI access:
 6. Enter `y` to enable DHCP server on LAN.
 7. Enter start address: `.100`, end address: `.200`.
 8. Do not revert to HTTP (keep HTTPS).
+
+<!-- minimal update -->

@@ -122,3 +122,5 @@ After completing all pfSense post-wizard configuration (Steps 1–5), take a Vir
 
 > [!TIP]
 > If anything breaks during subsequent VM deployments, you can instantly restore to this clean baseline via **Machine** → **Restore Snapshot** — without reinstalling pfSense from scratch.
+
+<!-- minimal update -->

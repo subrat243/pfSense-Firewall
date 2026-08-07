@@ -159,3 +159,5 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 ## License & Attribution
 
 This configuration is designed for enterprise lab simulation and cybersecurity training. Distributed under the MIT License.
+
+<!-- minimal update -->

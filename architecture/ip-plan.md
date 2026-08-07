@@ -67,3 +67,5 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 
 * **Default Resolver**: pfSense Unbound DNS Resolver (`x.x.x.1` on each interface gateway).
 * **AD Domain Forwarder**: Hostnames ending in `.corp.local` query `10.20.20.10` via pfSense Domain Overrides.
+
+<!-- minimal update -->

@@ -91,3 +91,5 @@ Enable the DHCP server on every internal interface via **Services** → **DHCP S
 | `dc01` | `08:00:27:AA:BB:CC` | `10.20.20.10` | AD | Active Directory DC01 |
 | `wazuh-siem` | `08:00:27:44:55:66` | `10.30.30.10` | Security | SIEM / Wazuh Manager |
 | `remnux` | `08:00:27:77:88:99` | `10.40.40.10` | Malware | REMnux Sandbox Workstation |
+
+<!-- minimal update -->
