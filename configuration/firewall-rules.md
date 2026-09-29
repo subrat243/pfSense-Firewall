@@ -78,4 +78,26 @@ Passive Suricata/Zeek collection does not require a routed pass rule from each s
 
 Do not add an allow-to-non-RFC1918 rule, public DNS exception, NAT rule, or second malware VM NIC attached to NAT/bridged networking. The implicit deny blocks anything else. Keep samples offline from the host and transfer artifacts only using controlled read-only media or a quarantined workflow.
 
+### 6. HOST_MGMT Rules (`em6`* / trusted Kali)
+
+| Order | Action | Proto | Source | Destination | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass | IPv4 * | `192.168.56.1/32` | `any` | Trusted physical Kali administration access |
+
+Use a static host address of `192.168.56.1` and pfSense address `192.168.56.2/24`. This rule is intentionally powerful: disable the host's HOST_MGMT connection and remove its lab routes before switching to BLACKBOX mode. Do not place a general pass rule on BLACKBOX as well.
+
+### 7. BLACKBOX Rules (`em7`* / attacker simulation)
+
+| Order | Action | Proto | Source | Destination | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Block | IPv4 * | `BLACKBOX net` | `MGMT_NET` | Protect management plane |
+| 2 | Block | IPv4 * | `BLACKBOX net` | `AD_NET` | Prevent direct AD access |
+| 3 | Block | IPv4 * | `BLACKBOX net` | `SECURITY_NET` | Hide SOC infrastructure |
+| 4 | Block | IPv4 * | `BLACKBOX net` | `MALWARE_NET` | Preserve malware isolation |
+| 5 | Pass | IPv4 * | `BLACKBOX net` | `CYBER_NET` | Expose only the cyber range/DMZ |
+
+Set physical Kali to `192.168.100.10/24` and pfSense to `192.168.100.1/24`. The host-only adapter itself is not a security boundary: HOST_MGMT must be disconnected and its `10.x` routes absent during black-box testing. Rules are evaluated top-to-bottom on BLACKBOX ingress.
+
+\* `em6` and `em7` are examples; verify interface mapping by MAC address.
+
 <!-- minimal update -->
