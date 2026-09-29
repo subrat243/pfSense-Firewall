@@ -2,7 +2,7 @@
 # ==============================================================================
 # Enterprise pfSense VirtualBox Provisioning Script
 # ==============================================================================
-# Automates VM creation, 20GB VDI disk allocation, and 6 Network Adapters assignment.
+# Automates VM creation, 20GB VDI disk allocation, and 8 Network Adapters assignment.
 #
 # Usage:
 #   chmod +x installation/setup-vbox-vm.sh
@@ -70,8 +70,8 @@ else
     echo "    Mount ISO manually before starting VM."
 fi
 
-# 4. Configure 6 Network Adapters
-echo "[*] Configuring 6 Network Adapters..."
+# 4. Configure 8 Network Adapters
+echo "[*] Configuring 8 Network Adapters..."
 
 # Adapter 1 - WAN (NAT)
 VBoxManage modifyvm "${VM_NAME}" --nic1 nat
@@ -101,6 +101,16 @@ VBoxManage modifyvm "${VM_NAME}" --nictype5 82545EM
 VBoxManage modifyvm "${VM_NAME}" --nic6 intnet
 VBoxManage modifyvm "${VM_NAME}" --intnet6 "intnet-malware"
 VBoxManage modifyvm "${VM_NAME}" --nictype6 82545EM
+
+# Adapter 7 - Trusted host access (host-only)
+VBoxManage modifyvm "${VM_NAME}" --nic7 hostonly
+VBoxManage modifyvm "${VM_NAME}" --hostonlyadapter7 "vboxnet0"
+VBoxManage modifyvm "${VM_NAME}" --nictype7 82545EM
+
+# Adapter 8 - External attacker simulation (host-only)
+VBoxManage modifyvm "${VM_NAME}" --nic8 hostonly
+VBoxManage modifyvm "${VM_NAME}" --hostonlyadapter8 "vboxnet1"
+VBoxManage modifyvm "${VM_NAME}" --nictype8 82545EM
 
 echo "------------------------------------------------------------------------"
 echo "[+] pfSense VM '${VM_NAME}' successfully configured!"
