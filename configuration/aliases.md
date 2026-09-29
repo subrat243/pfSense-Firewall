@@ -29,6 +29,9 @@ Navigate to **Firewall** → **Aliases** → **IP** tab → **Add**:
 | `AD_NET` | Network | `10.20.20.0/24` | Active Directory subnet — DCs & Windows members |
 | `SECURITY_NET` | Network | `10.30.30.0/24` | Security Operations subnet — SIEM, Wazuh, Suricata |
 | `MALWARE_NET` | Network | `10.40.40.0/24` | Malware Sandbox — fully isolated analysis environment |
+| `HOST_MGMT_NET` | Network | `192.168.56.0/24` | Trusted physical Kali administration link |
+| `BLACKBOX_NET` | Network | `192.168.100.0/24` | Untrusted attacker simulation link |
+| `WG_REMOTE_NET` | Network | `10.50.50.0/24` | Remote WireGuard peers |
 
 After creating each alias, click **Save** then **Apply Changes** once at the end.
 
@@ -51,7 +54,7 @@ After creating each alias, click **Save** then **Apply Changes** once at the end
 | :--- | :--- | :--- | :--- |
 | `Management_Ports` | Port(s) | `22` (SSH), `443` (HTTPS) | WebGUI and SSH administrative service ports |
 | `ActiveDirectory_Ports` | Port(s) | `53` (DNS), `88` (Kerberos), `135` (RPC), `139`/`445` (SMB), `389`/`636` (LDAP/S), `3268`/`3269` (GC) | Complete Windows Active Directory service port group |
-| `SIEM_Ingest_Ports` | Port(s) | `514` (Syslog), `1514` (Wazuh Agent), `1515` (Wazuh Auth), `9200` (Elasticsearch) | Log and telemetry ingestion ports |
+| `SIEM_Ingest_Ports` | Port(s) | `514` (Syslog), `1514` (Wazuh Agent), `1515` (Wazuh Auth), `5044` (Beats) | Log and telemetry ingestion ports; do not expose Elasticsearch directly |
 | `Web_Ports` | Port(s) | `80` (HTTP), `443` (HTTPS) | Standard web traffic |
 
 ---
