@@ -31,22 +31,25 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 * **Gateway**: `10.0.0.1`
 * **Static Host Allocations**:
   * `10.0.0.1`: pfSense WebGUI (`https://10.0.0.1:443`) & SSH (`port 22`)
-  * `10.0.0.10`: Primary Admin Workstation (Kali Host / Admin VM)
+  * `10.0.0.10`: Management Ubuntu VM
   * `10.0.0.50`: Out-of-band Hypervisor Management
+
+The physical Kali host is not assigned an address in this subnet. It reaches lab networks through HOST_MGMT (`192.168.56.1`) or, in black-box mode, BLACKBOX (`192.168.100.10`).
 
 ### 2. Cyber Range Network (`10.10.10.0/24`)
 * **Purpose**: Offense/Defense training, CTF boxes, vulnerable virtual machines (Metasploitable, VulnHub).
 * **Gateway**: `10.10.10.1`
 * **Static Host Allocations**:
-  * `10.10.10.10`: Attack Machine (Kali Linux / Commando VM)
-  * `10.10.10.50`: Target 01 (Metasploitable 2)
-  * `10.10.10.51`: Target 02 (Metasploitable 3 Windows)
+  * `10.10.10.10`: Metasploitable 2
+  * `10.10.10.20`: Metasploitable 3
+  * `10.10.10.30` and above: Additional vulnerable targets
+  * `10.10.10.50`: Optional SafeLine WAF
 
 ### 3. Active Directory Network (`10.20.20.0/24`)
 * **Purpose**: Enterprise Windows Domain environment including Domain Controllers, Certificate Authorities, and Windows clients.
 * **Gateway**: `10.20.20.1`
 * **Static Host Allocations**:
-  * `10.20.20.10`: Primary Domain Controller (DC01 - `corp.local`)
+  * `10.20.20.10`: Primary Domain Controller (DC01 - `lab.local`)
   * `10.20.20.11`: Secondary Domain Controller / PKI CA (DC02)
   * `10.20.20.50`: Windows 11 Enterprise Client (WKSTN-01)
 
@@ -65,6 +68,8 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
   * `10.40.40.10`: FLARE-VM / REMnux Analysis Workstation
   * `10.40.40.20`: Cuckoo / CAPEv2 Sandbox Node
 * **Routing Policy**: NO cross-subnet routing permitted. DNS requests conditionally intercepted or sinkholed by Unbound DNS.
+
+For live malware analysis, do not provide public DNS or WAN access to this subnet. Keep DHCP disabled unless its options point only to a local fake-internet service; use static addressing and a local INetSim/FakeNet-NG resolver when needed.
 
 ---
 
