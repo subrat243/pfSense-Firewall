@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 6 distinct network adapters.
+This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 8 network adapters: one WAN, five internal lab segments, and two host-only access networks.
 
 ---
 
@@ -31,8 +31,14 @@ pfSense requires 6 total virtual network interface cards (NICs). Because Virtual
 | **Adapter 2** | `Internal Network` | `intnet-mgmt` | `em1` | Management Network (`10.0.0.0/24`) |
 | **Adapter 3** | `Internal Network` | `intnet-cyber` | `em2` | Cyber Range Network (`10.10.10.0/24`) |
 | **Adapter 4** | `Internal Network` | `intnet-ad` | `em3` | Active Directory (`10.20.20.0/24`) |
-| **Adapter 5** | `Internal Network` | `intnet-security` | `em4` | Security Operations (`10.30.30.0/24`) |
+| **Adapter 5** | `Internal Network` | `intnet-sec` | `em4` | Security Operations (`10.30.30.0/24`) |
 | **Adapter 6** | `Internal Network` | `intnet-malware` | `em5` | Malware Sandbox (`10.40.40.0/24`) |
+| **Adapter 7** | `Host-only Adapter` | `vboxnet0` | `em6`* | Trusted Kali host access (`192.168.56.0/24`) |
+| **Adapter 8** | `Host-only Adapter` | `vboxnet1` | `em7`* | Black-box Kali attacker access (`192.168.100.0/24`) |
+
+\* Device names depend on VirtualBox enumeration. Confirm the actual mapping by MAC address in pfSense before assigning interfaces. Create/configure both host-only networks as described in [Kali host network setup](kali-network-setup.md) before running the provisioning script.
+
+VirtualBox Internal Networks are identified by name and do not need a separate Network Manager object: attaching VMs to the same exact name places them on the same isolated virtual switch. The host-only adapters are intentionally separate; `vboxnet0` is the trusted management path and `vboxnet1` is used only for black-box exercises.
 
 ---
 
@@ -78,6 +84,16 @@ VBoxManage modifyvm "pfSense" --nictype5 82545EM
 VBoxManage modifyvm "pfSense" --nic6 intnet
 VBoxManage modifyvm "pfSense" --intnet6 "intnet-malware"
 VBoxManage modifyvm "pfSense" --nictype6 82545EM
+
+# Adapter 7 - Trusted Kali host access
+VBoxManage modifyvm "pfSense" --nic7 hostonly
+VBoxManage modifyvm "pfSense" --hostonlyadapter7 "vboxnet0"
+VBoxManage modifyvm "pfSense" --nictype7 82545EM
+
+# Adapter 8 - Black-box attacker access
+VBoxManage modifyvm "pfSense" --nic8 hostonly
+VBoxManage modifyvm "pfSense" --hostonlyadapter8 "vboxnet1"
+VBoxManage modifyvm "pfSense" --nictype8 82545EM
 ```
 
 ---
@@ -101,6 +117,8 @@ NIC 3: Attachment: Internal Network 'intnet-cyber'
 NIC 4: Attachment: Internal Network 'intnet-ad'
 NIC 5: Attachment: Internal Network 'intnet-sec'
 NIC 6: Attachment: Internal Network 'intnet-malware'
+NIC 7: Attachment: Host-only Interface 'vboxnet0'
+NIC 8: Attachment: Host-only Interface 'vboxnet1'
 ```
 
 Once this is complete, proceed to the **[pfSense Installation](pfsense-install.md)** and **[Interface Assignment](interface-assignment.md)**.
