@@ -8,37 +8,39 @@ pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are 
 
 ## Global Firewall Principles & Strategy
 
-1. **Default Deny All**: Inbound traffic on WAN and all inter-subnet communications are blocked by default unless explicitly allowed.
-2. **Management Isolation**: Only hosts in `Admin_Hosts` (`10.0.0.10`) can reach pfSense WebGUI and SSH ports (`Management_Ports`).
-3. **Malware Sandbox Isolation**: Malware subnet (`10.40.40.0/24`) is strictly blocked from reaching any internal network (`RFC1918_Networks`).
-4. **Active Directory Rule Scoping**: Domain clients reach AD DCs (`Domain_Controllers`) on specified `ActiveDirectory_Ports`.
-5. **SIEM Telemetry**: Internal subnets forward syslog/telemetry to `SIEM_Collectors` on port `514`/`1514`.
+1. **Default Deny**: pfSense has an implicit deny at the bottom of each interface ruleset. Add only the pass rules each segment needs.
+2. **Ingress Evaluation**: Rules are evaluated on the interface where a connection enters pfSense. A Cyber-to-AD policy belongs on CYBER, not AD.
+3. **Management**: MGMT is trusted for lab administration. HOST_MGMT is a separate, source-restricted path from physical Kali; do not put the host on a lab internal network.
+4. **Malware Containment**: MALWARE has no WAN or cross-segment pass rule. Explicit blocks document this critical boundary; keep them above any permitted local telemetry exception.
+5. **SIEM Telemetry**: Permit only the required source-to-SIEM-host ports, above any broader block. Confirm exact protocols and ports for the selected collector.
 
 ---
 
 ## Detailed Interface Rule Matrices
 
-### 1. Management Interface Rules (`em1` / LAN)
+### 1. Management Interface Rules (`em1` / MGMT)
 
 | Rule # | Action | Proto | Source | Port | Destination | Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Pass | TCP | `Admin_Hosts` | * | `LAN Address` | `Management_Ports` | Allow Admin Workstations to access pfSense WebGUI & SSH |
-| **2** | Pass | UDP/TCP| `Management net` | * | `LAN Address` | `53` (DNS) | Allow Management DNS queries |
-| **3** | Pass | IPv4 * | `Management net` | * | ! `RFC1918_Networks` | * | Allow Management subnet outbound Internet access |
-| **4** | Pass | IPv4 * | `Management net` | * | `Internal_Lab_Subnets` | * | Allow Management full admin access to all internal subnets |
-| **5** | Block | IPv4 * | * | * | * | * | Default Deny Catch-all |
+| **1** | Pass | IPv4 * | `MGMT net` | * | `Internal_Lab_Subnets` | * | Trusted management VM can administer lab segments |
+| **2** | Pass | TCP | `Admin_Hosts` | * | `MGMT Address` | `Management_Ports` | Allow approved administrators to reach pfSense WebGUI/SSH |
+| **3** | Pass | UDP/TCP | `MGMT net` | * | `MGMT Address` | `53` (DNS) | Allow management DNS queries |
 
----
+Avoid a broad `MGMT net -> any` pass rule if the intent is to protect the firewall itself; the implicit deny handles anything not explicitly allowed.
 
 ### 2. Cyber Range Interface Rules (`em2` / CYBER)
 
-| Rule # | Action | Proto | Source | Port | Destination | Port | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Pass | UDP/TCP| `CYBER net` | * | `CYBER Address` | `53` (DNS) | Allow DNS requests to pfSense Unbound |
-| **2** | Pass | IPv4 * | `CYBER net` | * | `SIEM_Collectors` | `SIEM_Ingest_Ports` | Send security logs to Wazuh / SIEM |
-| **3** | Pass | IPv4 * | `CYBER net` | * | `AD net` | `ActiveDirectory_Ports` | Allow attack/audit traffic to AD targets |
-| **4** | Block | IPv4 * | `CYBER net` | * | `Management net` | * | Block Cyber Range from reaching Management network |
-| **5** | Pass | IPv4 * | `CYBER net` | * | ! `RFC1918_Networks` | * | Allow Outbound Internet access for software updates |
+| Order | Action | Proto | Source | Destination | Port | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass (optional) | IPv4 * | `CYBER net` | WAN / non-RFC1918 | Required update ports | Enable only during patching or when required |
+| 2 | Pass | UDP | `CYBER net` | `SIEM_Collectors` | `514` | Syslog, if configured |
+| 3 | Pass | TCP | `CYBER net` | `SIEM_Collectors` | `1514`, `1515`, `5044` | Wazuh agent / Beats, only deployed ports |
+| 4 | Pass (disabled by default) | IPv4 * | `CYBER net` | `AD_NET` | Required AD ports | Temporary pivot exercise only |
+| 5 | Block | IPv4 * | `CYBER net` | `MGMT_NET` | * | Protect the management plane |
+| 6 | Block | IPv4 * | `CYBER net` | `MALWARE_NET` | * | Prevent access to malware analysis |
+| 7 | Block | IPv4 * | `CYBER net` | `SECURITY_NET` | * | Block everything except prior SIEM telemetry allows |
+
+Keep the SIEM allows above the Security block and scope destination to the actual collector address. Do not add a broad Cyber-to-AD or Cyber-to-WAN rule permanently.
 
 ---
 
