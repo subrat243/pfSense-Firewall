@@ -75,8 +75,8 @@ VirtualBox presents eight virtual Network Interface Cards (NICs) to pfSense: one
 
 ## 4. VirtualBox Internal Network Isolation
 
-### Why the Kali Host Cannot Access pfSense WebGUI directly (`192.168.1.1`)
-VirtualBox **Internal Networks** (`intnet-*`) create completely isolated virtual switches visible **only** to Virtual Machine guest interfaces connected to that specific switch name.
+### Host access uses explicit host-only links
+VirtualBox **Internal Networks** (`intnet-*`) create completely isolated virtual switches visible **only** to VM interfaces connected to that exact switch name. The physical Kali host is not directly attached to any of the five lab networks. It reaches them only through pfSense using one of two explicitly configured host-only networks:
 
 ```text
                          Virtual Switch (intnet-mgmt)
@@ -91,11 +91,15 @@ VirtualBox **Internal Networks** (`intnet-*`) create completely isolated virtual
                                         
                         Host OS (Kali Linux)
                                  │
-                   ❌ NOT Connected to Switch
+                     Host-only `vboxnet0`
+                                 │
+                         pfSense HOST_MGMT
 ```
 
-* **Security Benefit**: Prevents accidental traffic leaks between host OS processes and internal lab subnets.
-* **Enforces Hygiene**: Keeps host penetration testing tools (Burp Suite, Nmap, Metasploit) cleanly isolated from administrative access paths.
+* **Security Benefit**: Internal switches prevent direct host attachment; host traffic must pass through pfSense policy.
+* **Trusted mode**: HOST_MGMT (`192.168.56.1` host, `192.168.56.2` pfSense) is the administration path. Host routes through pfSense enable lab access and must be removed/disabled before black-box testing.
+* **Black-box mode**: BLACKBOX (`192.168.100.10` host, `192.168.100.1` pfSense) is a separate attacker path restricted to CYBER. Disable HOST_MGMT and its routes while using this mode.
+* **Remote mode**: WireGuard (`10.50.50.0/24`) exposes only the explicitly allowed management and SOC destinations; never publish the pfSense GUI or SIEM directly on the Internet.
 
 ---
 
