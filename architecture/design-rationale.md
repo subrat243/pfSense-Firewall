@@ -37,7 +37,7 @@ In this virtual lab, **pfSense Community Edition** acts as the central router, s
 
 ## 2. Multi-Interface Physical Emulation
 
-VirtualBox presents six virtual Network Interface Cards (NICs) to pfSense, mapped to emulate an enterprise multi-port hardware appliance:
+VirtualBox presents eight virtual Network Interface Cards (NICs) to pfSense: one WAN, five isolated lab segments, and two host-only access links. The WireGuard tunnel is a software interface and does not consume a VirtualBox NIC.
 
 | pfSense Interface | System Device | Mapped Network Segment | VirtualBox Attachment Mode |
 | :--- | :--- | :--- | :--- |
@@ -47,6 +47,10 @@ VirtualBox presents six virtual Network Interface Cards (NICs) to pfSense, mappe
 | **OPT2** | `em3` | Active Directory (`intnet-ad`) | Internal Network |
 | **OPT3** | `em4` | Security Operations (`intnet-sec`) | Internal Network |
 | **OPT4** | `em5` | Malware Sandbox (`intnet-malware`)| Internal Network |
+| **OPT5** | `em6`* | HOST_MGMT (`vboxnet0`) | Host-only Adapter |
+| **OPT6** | `em7`* | BLACKBOX (`vboxnet1`) | Host-only Adapter |
+
+\* Device names are examples only. Identify each adapter by its VirtualBox MAC address in pfSense before assigning roles. See [interface assignment](../installation/interface-assignment.md) and [Kali host network setup](../installation/kali-network-setup.md).
 
 > [!NOTE]
 > In an enterprise firewall (e.g., Netgate, Palo Alto, Fortinet), distinct physical Ethernet ports segregate physical switches into distinct security zones (DMZ, Employee LAN, Guest Wi-Fi, Server Farm). Here, VirtualBox Internal Networks simulate physical switches.
@@ -132,10 +136,10 @@ Malware Sandbox (10.40.40.0/24) ────> Zero Cross-Subnet Access | Isolate
 
 ## Summary Checklist of Accomplished Setup
 
-- [x] Provisioned pfSense virtual firewall with 6 interfaces in VirtualBox.
+- [x] Provisioned pfSense virtual firewall with 8 VirtualBox adapters (WAN, five lab networks, and two host-only access links).
 - [x] Connected **WAN (`em0`)** to VirtualBox **NAT** for external internet routing.
 - [x] Assigned **LAN (`em1`)** to isolated Internal Network `intnet-mgmt`.
 - [x] Assigned **OPT1–OPT4 (`em2`–`em5`)** to dedicated Internal Networks (`intnet-cyber`, `intnet-ad`, `intnet-sec`, `intnet-malware`).
-- [x] Provisioning Ubuntu Management Workstation on `intnet-mgmt` to perform initial WebGUI setup and subnet configuration.
+- [x] Provisioned Ubuntu Management Workstation on `intnet-mgmt` to perform initial WebGUI setup and subnet configuration.
 
 <!-- minimal update -->
