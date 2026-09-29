@@ -88,7 +88,13 @@ Navigate to **Interfaces** $\rightarrow$ **[Interface Name]** to enable each int
 
 
 > [!NOTE]
-> Every interface IP address acts as the **default gateway** and **DNS resolver** for all host devices connected to that specific network segment.
+> Each enabled LAN/OPT interface address is the default gateway for its subnet. DNS is a separate policy: AD clients should use DC01 (`10.20.20.10`), and malware analysis should use only an isolated fake-DNS service when configured. Do not advertise public DNS on MALWARE.
+
+### Step 3 — Configure the remote access interface
+
+HOST_MGMT (`192.168.56.2/24`) and BLACKBOX (`192.168.100.1/24`) are local access interfaces. Leave their upstream gateway unset. Configure the physical Kali addresses and routes using [Kali host network setup](kali-network-setup.md).
+
+After installing and configuring WireGuard, assign its tunnel under **Interfaces** → **Assignments**, enable it, and set `10.50.50.1/24`. Do not select it as the system default gateway; keep the normal WAN gateway explicitly selected. Add only the scoped remote-access rules in [Firewall Rules](../configuration/firewall-rules.md).
 
 ---
 
