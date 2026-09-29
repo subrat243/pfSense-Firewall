@@ -2,7 +2,7 @@
 
 ## Overview
 
-pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel PRO/1000 MT Desktop NICs, interfaces are identified as `em0` through `em5`.
+pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel PRO/1000 MT Desktop NICs, interfaces are commonly identified as `em0` through `em7`, but device names can vary. Treat adapter order as a starting point only: match VirtualBox adapter MAC addresses to pfSense device names before assigning roles.
 
 ---
 
@@ -26,6 +26,8 @@ pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel P
    * Prompt: `Enter the Optional 2 interface name or 'a' for auto-detection:` -> `em3` (AD)
    * Prompt: `Enter the Optional 3 interface name or 'a' for auto-detection:` -> `em4` (Security)
    * Prompt: `Enter the Optional 4 interface name or 'a' for auto-detection:` -> `em5` (Malware)
+   * Prompt: `Enter the Optional 5 interface name or 'a' for auto-detection:` -> device mapped to `vboxnet0` (HOST_MGMT)
+   * Prompt: `Enter the Optional 6 interface name or 'a' for auto-detection:` -> device mapped to `vboxnet1` (BLACKBOX)
    * Press `Enter` when no additional interfaces remain.
 
 6. **Confirmation**:
@@ -36,6 +38,8 @@ pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel P
      * OPT2 -> `em3`
      * OPT3 -> `em4`
      * OPT4 -> `em5`
+   * OPT5 -> HOST_MGMT adapter (`vboxnet0`; verify device by MAC)
+   * OPT6 -> BLACKBOX adapter (`vboxnet1`; verify device by MAC)
    * Type `y` and press `Enter` to commit changes.
 
 ![pfSense Console Interface Assignment Output](../screenshots/07-pfsense-interface-assignment.png)
@@ -59,6 +63,8 @@ Navigate to **Interfaces** $\rightarrow$ **Interface Assignments** in the pfSens
 | `OPT2` | **`AD`** | `em3` | Active Directory Subnet Gateway |
 | `OPT3` | **`SECURITY`** | `em4` | Security Operations Subnet Gateway |
 | `OPT4` | **`MALWARE`** | `em5` | Isolated Malware Sandbox Gateway |
+| `OPT5` | **`HOST_MGMT`** | Adapter 7 device (verify MAC) | Trusted physical Kali host access |
+| `OPT6` | **`BLACKBOX`** | Adapter 8 device (verify MAC) | External-attacker simulation path |
 
 > [!TIP]
 > **Why rename interfaces?**
@@ -72,11 +78,14 @@ Navigate to **Interfaces** $\rightarrow$ **[Interface Name]** to enable each int
 
 | Interface Name | Assigned IP Address (CIDR) | Alternative Subnet Scheme | Gateway Role |
 | :--- | :--- | :--- | :--- |
-| **MGMT** | `10.0.0.1/24` | `192.168.10.1` | Default gateway for Management subnet |
-| **CYBER** | `10.10.10.1/24` | `192.168.20.1` | Default gateway for Cyber Range subnet |
-| **AD** | `10.20.20.1/24` | `192.168.30.1` | Default gateway for Active Directory subnet |
-| **SECURITY** | `10.30.30.1/24` | `192.168.40.1` | Default gateway for Security Operations subnet |
-| **MALWARE** | `10.40.40.1/24` | `192.168.50.1` | Default gateway for Malware Sandbox subnet |
+| **MGMT** | `10.0.0.1/24` | `192.168.10.1/24` | Default gateway for Management subnet |
+| **CYBER** | `10.10.10.1/24` | `192.168.20.1/24` | Default gateway for Cyber Range subnet |
+| **AD** | `10.20.20.1/24` | `192.168.30.1/24` | Default gateway for Active Directory subnet |
+| **SECURITY** | `10.30.30.1/24` | `192.168.40.1/24` | Default gateway for Security Operations subnet |
+| **MALWARE** | `10.40.40.1/24` | `192.168.50.1/24` | Default gateway for Malware Sandbox subnet |
+| **HOST_MGMT** | `192.168.56.2/24` | — | Trusted physical host link; no upstream gateway |
+| **BLACKBOX** | `192.168.100.1/24` | — | Attacker simulation link; no upstream gateway |
+
 
 > [!NOTE]
 > Every interface IP address acts as the **default gateway** and **DNS resolver** for all host devices connected to that specific network segment.
