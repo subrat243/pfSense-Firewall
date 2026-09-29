@@ -16,6 +16,11 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 | **Active Dir.** | `em3` | `10.20.20.0/24` | `10.20.20.0` | `255.255.255.0` | `10.20.20.1` | `10.20.20.2 - 10.20.20.254` | `10.20.20.255` | `10.20.20.100 - 10.20.20.200` |
 | **Security** | `em4` | `10.30.30.0/24` | `10.30.30.0` | `255.255.255.0` | `10.30.30.1` | `10.30.30.2 - 10.30.30.254` | `10.30.30.255` | `10.30.30.100 - 10.30.30.200` |
 | **Malware** | `em5` | `10.40.40.0/24` | `10.40.40.0` | `255.255.255.0` | `10.40.40.1` | `10.40.40.2 - 10.40.40.254` | `10.40.40.255` | `10.40.40.100 - 10.40.40.200` |
+| **HOST_MGMT** | `em6` | `192.168.56.0/24` | `192.168.56.0` | `255.255.255.0` | `192.168.56.2` | `192.168.56.1 - 192.168.56.254` | `192.168.56.255` | Disabled; static host addresses |
+| **BLACKBOX** | `em7` | `192.168.100.0/24` | `192.168.100.0` | `255.255.255.0` | `192.168.100.1` | `192.168.100.2 - 192.168.100.254` | `192.168.100.255` | Disabled; static host addresses |
+| **WG_REMOTE** | WireGuard | `10.50.50.0/24` | `10.50.50.0` | `255.255.255.0` | `10.50.50.1` | `10.50.50.1 - 10.50.50.254` | `10.50.50.255` | Peer addresses assigned statically |
+
+* VirtualBox device names vary. `em6`/`em7` and the WireGuard interface are logical role references only; verify actual NIC assignments by MAC before configuring. HOST_MGMT, BLACKBOX, and WireGuard are access networks, not part of the five internal lab segments.
 
 ---
 
