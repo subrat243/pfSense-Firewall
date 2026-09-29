@@ -100,4 +100,19 @@ Set physical Kali to `192.168.100.10/24` and pfSense to `192.168.100.1/24`. The 
 
 \* `em6` and `em7` are examples; verify interface mapping by MAC address.
 
+### 8. WireGuard Remote Access Rules (`WG_REMOTE`)
+
+Assign the WireGuard tunnel under **Interfaces → Assignments**, enable it, and use `10.50.50.1/24` on the pfSense tunnel. A remote peer may use `10.50.50.2/32`. On the assigned interface, add only the resources the peer requires:
+
+| Order | Action | Proto | Source | Destination | Port | Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass | TCP | `10.50.50.2/32` | `10.0.0.1` | `443` | pfSense WebGUI |
+| 2 | Pass | TCP | `10.50.50.2/32` | `10.0.0.10` | `22` | Management Ubuntu SSH |
+| 3 | Pass | TCP | `10.50.50.2/32` | `10.30.30.10` | `443` | Wazuh dashboard |
+| 4 | Pass (optional) | TCP | `10.50.50.2/32` | `10.30.30.10` | `22` | Wazuh administration, only if needed |
+
+Do not add `WG_REMOTE -> any`. On WAN, allow only inbound UDP `51820` to **WAN address** for the WireGuard handshake; do not expose GUI, SSH, or dashboard ports there. Configure the required VirtualBox and upstream-router UDP port forwards as described in [NAT and port forwarding](nat.md). When WAN uses VirtualBox NAT/private addressing, disable pfSense's WAN **Block private networks** option only for this isolated lab WAN. Keep it enabled on a genuine public WAN.
+
+Use client `AllowedIPs = 10.0.0.0/24, 10.30.30.0/24, 10.50.50.0/24` for split tunneling. Select the WAN gateway explicitly as the system default before assigning the WireGuard interface, then verify remote access from a genuinely external network. If the ISP uses CGNAT, inbound forwarding will not work; use an outbound tunnel or public VPN endpoint instead.
+
 <!-- minimal update -->
