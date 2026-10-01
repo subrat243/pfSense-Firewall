@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document guides you step-by-step through installing **pfSense CE 2.7.2** from ISO image onto the provisioned VirtualBox virtual machine.
+This document guides you step-by-step through installing **pfSense CE 2.7.2** from ISO image onto the provisioned eight-adapter VirtualBox virtual machine. Create both host-only networks first as described in [Kali Host Network Setup](kali-network-setup.md).
 
 ---
 
@@ -52,6 +52,8 @@ During system boot, pfSense initializes network drivers and services:
 
 Once booted into pfSense OS, the text-based console menu displays:
 
+The following console output is illustrative and may show only interfaces already assigned. Adapter order and FreeBSD device names can vary; confirm the VirtualBox MAC-to-device mapping and assign all eight adapters using the [interface assignment guide](interface-assignment.md).
+
 ![pfSense Console Initial Options Menu](../screenshots/06-pfsense-console-menu-initial.png)
 
 ```text
@@ -78,6 +80,7 @@ Once booted into pfSense OS, the text-based console menu displays:
 - [x] pfSense boots cleanly without FreeBSD kernel panic.
 - [x] Console menu `0-16` appears successfully.
 - [x] Optical ISO drive detached.
+- [ ] Eight VirtualBox adapters are attached and mapped to their intended networks.
 - [x] Ready for interface assignment.
 
 ---
@@ -115,12 +118,14 @@ After completing all pfSense post-wizard configuration (Steps 1–5), take a Vir
 4. Add a description (optional but recommended):
 
    ```
-   pfSense 2.7.2 fully configured: interfaces renamed, IPs assigned, DHCP enabled, internet verified, aliases created. Ready for lab VM deployment.
+   pfSense 2.7.2 baseline: interfaces mapped and named, IPs assigned, DHCP enabled only on intended segments, internet verified, aliases created. Malware remains isolated. Ready for lab VM deployment.
    ```
 
 5. Click **OK**.
 
 > [!TIP]
 > If anything breaks during subsequent VM deployments, you can instantly restore to this clean baseline via **Machine** → **Restore Snapshot** — without reinstalling pfSense from scratch.
+
+Before adding or changing HOST_MGMT, BLACKBOX, or WireGuard configuration, export the pfSense XML from **Diagnostics → Backup & Restore** and take a new VirtualBox snapshot. Store exports outside the VM.
 
 <!-- minimal update -->
