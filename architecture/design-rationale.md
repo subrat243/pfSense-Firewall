@@ -37,7 +37,7 @@ In this virtual lab, **pfSense Community Edition** acts as the central router, s
 
 ## 2. Multi-Interface Physical Emulation
 
-VirtualBox presents eight virtual Network Interface Cards (NICs) to pfSense: one WAN, five isolated lab segments, and two host-only access links. The WireGuard tunnel is a software interface and does not consume a VirtualBox NIC.
+VirtualBox presents eight network adapters to pfSense: one WAN, five isolated lab networks, and two host-only access paths. WireGuard is a software interface and does not consume a VirtualBox adapter.
 
 | pfSense Interface | System Device | Mapped Network Segment | VirtualBox Attachment Mode |
 | :--- | :--- | :--- | :--- |
@@ -47,10 +47,10 @@ VirtualBox presents eight virtual Network Interface Cards (NICs) to pfSense: one
 | **OPT2** | `em3` | Active Directory (`intnet-ad`) | Internal Network |
 | **OPT3** | `em4` | Security Operations (`intnet-sec`) | Internal Network |
 | **OPT4** | `em5` | Malware Sandbox (`intnet-malware`)| Internal Network |
-| **OPT5** | `em6`* | HOST_MGMT (`vboxnet0`) | Host-only Adapter |
-| **OPT6** | `em7`* | BLACKBOX (`vboxnet1`) | Host-only Adapter |
+| **OPT5** | Verify by MAC | HOST_MGMT (`vboxnet0`) | Host-only Adapter |
+| **OPT6** | Verify by MAC | BLACKBOX (`vboxnet1`) | Host-only Adapter |
 
-\* Device names are examples only. Identify each adapter by its VirtualBox MAC address in pfSense before assigning roles. See [interface assignment](../installation/interface-assignment.md) and [Kali host network setup](../installation/kali-network-setup.md).
+The `emN` examples are not guaranteed. Compare each VirtualBox MAC address with pfSense **Interfaces → Assignments** before configuring it. See the [interface assignment guide](../installation/interface-assignment.md).
 
 > [!NOTE]
 > In an enterprise firewall (e.g., Netgate, Palo Alto, Fortinet), distinct physical Ethernet ports segregate physical switches into distinct security zones (DMZ, Employee LAN, Guest Wi-Fi, Server Farm). Here, VirtualBox Internal Networks simulate physical switches.
@@ -75,8 +75,8 @@ VirtualBox presents eight virtual Network Interface Cards (NICs) to pfSense: one
 
 ## 4. VirtualBox Internal Network Isolation
 
-### Host access uses explicit host-only links
-VirtualBox **Internal Networks** (`intnet-*`) create completely isolated virtual switches visible **only** to VM interfaces connected to that exact switch name. The physical Kali host is not directly attached to any of the five lab networks. It reaches them only through pfSense using one of two explicitly configured host-only networks:
+### Host Access Uses Explicit Host-only Links
+VirtualBox **Internal Networks** (`intnet-*`) create isolated virtual switches visible only to VMs attached to the matching name. The physical Kali host does not join any of the five lab segments directly. It reaches them through pfSense using separate access paths:
 
 ```text
                          Virtual Switch (intnet-mgmt)
@@ -96,10 +96,9 @@ VirtualBox **Internal Networks** (`intnet-*`) create completely isolated virtual
                          pfSense HOST_MGMT
 ```
 
-* **Security Benefit**: Internal switches prevent direct host attachment; host traffic must pass through pfSense policy.
-* **Trusted mode**: HOST_MGMT (`192.168.56.1` host, `192.168.56.2` pfSense) is the administration path. Host routes through pfSense enable lab access and must be removed/disabled before black-box testing.
-* **Black-box mode**: BLACKBOX (`192.168.100.10` host, `192.168.100.1` pfSense) is a separate attacker path restricted to CYBER. Disable HOST_MGMT and its routes while using this mode.
-* **Remote mode**: WireGuard (`10.50.50.0/24`) exposes only the explicitly allowed management and SOC destinations; never publish the pfSense GUI or SIEM directly on the Internet.
+* **HOST_MGMT** (`192.168.56.1` Kali, `192.168.56.2` pfSense) is the trusted administrative path; host routes pass through pfSense.
+* **BLACKBOX** (`192.168.100.10` Kali, `192.168.100.1` pfSense) simulates an untrusted attacker and is restricted to CYBER. Disconnect HOST_MGMT and remove its trusted routes during this mode.
+* **WireGuard** (`10.50.50.0/24`) supports remote administration with explicit destination/port rules. Never expose the pfSense GUI, SSH, or SIEM directly to WAN.
 
 ---
 
@@ -129,18 +128,18 @@ If all lab assets reside on a single subnet:
 By enforcing strict subnets per zone, pfSense evaluates every inter-zone packet against explicit rules:
 
 ```text
-Management (10.0.0.0/24) ──────> Full Access to All Subnets & WebGUI
-Cyber Range (10.10.10.0/24) ───> Internet Access YES | Cross-Subnet NO (Selective LDAP/DNS to AD)
-Active Directory (10.20.20.0/24) ──> Internet Access YES | Isolated from Cyber Range & Malware
-Security Operations (10.30.30.0/24) ─> Receives Log Streams | Web Dashboards exposed to Mgmt
-Malware Sandbox (10.40.40.0/24) ────> Zero Cross-Subnet Access | Isolated / Sinkholed DNS
+Management (10.0.0.0/24) ──────> Trusted administrative access, explicitly scoped
+Cyber Range (10.10.10.0/24) ───> Optional updates; scoped SIEM telemetry; no lateral access by default
+Active Directory (10.20.20.0/24) ──> Scoped SIEM telemetry; no Cyber/Malware access
+Security Operations (10.30.30.0/24) ─> SIEM; only required polling and updates
+Malware Sandbox (10.40.40.0/24) ────> No WAN/cross-segment access; local fake DNS only
 ```
 
 ---
 
 ## Summary Checklist of Accomplished Setup
 
-- [x] Provisioned pfSense virtual firewall with 8 VirtualBox adapters (WAN, five lab networks, and two host-only access links).
+- [x] Provisioned pfSense virtual firewall with eight VirtualBox adapters (WAN, five lab segments, and two host-only access links).
 - [x] Connected **WAN (`em0`)** to VirtualBox **NAT** for external internet routing.
 - [x] Assigned **LAN (`em1`)** to isolated Internal Network `intnet-mgmt`.
 - [x] Assigned **OPT1–OPT4 (`em2`–`em5`)** to dedicated Internal Networks (`intnet-cyber`, `intnet-ad`, `intnet-sec`, `intnet-malware`).
