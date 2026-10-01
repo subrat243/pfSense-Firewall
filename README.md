@@ -105,6 +105,16 @@ Built on a physical Kali Linux host, VirtualBox runs the lab VMs and pfSense rou
 
 \* Device names such as `em0`–`em7` can vary. Verify mappings by adapter MAC address before assigning pfSense roles. HOST_MGMT and BLACKBOX have no upstream gateway. The WireGuard tunnel is configured separately in pfSense.
 
+### Kali Access Modes
+
+| Mode | Path | Reach |
+| :--- | :--- | :--- |
+| Trusted administration | Kali `192.168.56.1` → HOST_MGMT → pfSense `192.168.56.2` | All five lab segments, subject to the trusted admin policy |
+| Black-box testing | Kali `192.168.100.10` → BLACKBOX → pfSense `192.168.100.1` | CYBER only; disconnect HOST_MGMT and its trusted routes first |
+| Remote administration | Remote peer `10.50.50.2` → WireGuard | Only explicitly allowed MGMT/SECURITY hosts and ports |
+
+The BLACKBOX host-only adapter must use `192.168.100.10`; `.1` is reserved for pfSense. See [Kali Host Network Setup](installation/kali-network-setup.md) before using these paths. Malware VMs remain on `intnet-malware` only and have no WAN access.
+
 ---
 
 ## Repository Structure
