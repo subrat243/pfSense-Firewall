@@ -2,7 +2,7 @@
 
 ## Overview
 
-pfSense uses **Unbound DNS Resolver** for full recursive resolution with DNSSEC validation, custom host overrides, domain overrides for Active Directory integration, and DNS sinkholing for threat defense.
+pfSense uses **Unbound DNS Resolver** for approved lab DNS clients, custom host overrides, and optional Active Directory domain forwarding. DNS listener scope must respect segment isolation; MALWARE must never use pfSense for recursive public DNS.
 
 ---
 
@@ -11,7 +11,7 @@ pfSense uses **Unbound DNS Resolver** for full recursive resolution with DNSSEC 
 | Option | Recommended Value | Description |
 | :--- | :--- | :--- |
 | **Enable DNS Resolver** | `Checked` | Activates Unbound service |
-| **Listen Interfaces** | `All` (or Mgmt, Cyber, AD, Sec, Malware) | Responds to DNS queries on all subnets |
+| **Listen Interfaces** | Explicitly selected permitted interfaces; exclude MALWARE | Avoids providing a DNS path from the isolated malware network |
 | **Outgoing Interfaces** | `WAN` | Performs root recursive lookup out WAN interface |
 | **DNSSEC** | `Enabled` | Validates DNS response signatures |
 | **DNS Query Forwarding** | `Disabled` (Recursive mode) | Direct root server recursive resolution |
@@ -25,7 +25,7 @@ To integrate internal Windows Active Directory domain name resolution without mo
 
 | Domain | IP Address / Target | Description |
 | :--- | :--- | :--- |
-| `corp.local` | `10.20.20.10` | Forward all `.corp.local` DNS queries to Windows DC01 |
+| `lab.local` | `10.20.20.10` | Forward `lab.local` queries to Windows DC01 when clients outside AD need domain resolution |
 | `20.20.10.in-addr.arpa` | `10.20.20.10` | Reverse DNS lookup for Active Directory subnet |
 
 ---
@@ -37,18 +37,12 @@ To integrate internal Windows Active Directory domain name resolution without mo
 | `pfsense` | `lab.local` | `10.0.0.1` | pfSense Firewall WebGUI |
 | `siem` | `lab.local` | `10.30.30.10` | Wazuh SIEM Dashboard |
 | `wazuh` | `lab.local` | `10.30.30.10` | Wazuh Manager Alias |
-| `dc01` | `corp.local` | `10.20.20.10` | Primary Domain Controller |
+| `dc01` | `lab.local` | `10.20.20.10` | Primary Domain Controller |
 
 ---
 
-## Malware Network DNS Sinkholing
+## Malware Network DNS
 
-For the Malware Sandbox network (`10.40.40.0/24`), custom Unbound options can sinkhole known malicious C2 domains to local loopback `127.0.0.1` or INetSim fake services:
-
-```text
-server:
-  local-zone: "malicious-c2-domain.com" redirect
-  local-data: "malicious-c2-domain.com A 127.0.0.1"
-```
+Do not offer Unbound to the Malware segment: recursive queries handled by pfSense could leave through the firewall even when the malware VM itself has no WAN route. Configure malware guests with static DNS pointing to an INetSim/FakeNet-NG service on `10.40.40.0/24`. Keep that fake resolver local to the segment and confirm pfSense has no Malware-to-WAN pass rule.
 
 <!-- minimal update -->
