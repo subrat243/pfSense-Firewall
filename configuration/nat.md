@@ -14,23 +14,26 @@ pfSense defaults to **Automatic Outbound NAT rule generation**. For granular con
 
 | Interface | Source Subnet | Source Port | Destination | Dest Port | NAT Address | NAT Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **WAN** | `10.0.0.0/24` (Mgmt) | * | * | * | `WAN address` | * | Auto NAT for Management subnet |
-| **WAN** | `10.10.10.0/24` (Cyber) | * | * | * | `WAN address` | * | Auto NAT for Cyber Range subnet |
-| **WAN** | `10.20.20.0/24` (AD) | * | * | * | `WAN address` | * | Auto NAT for Active Directory |
-| **WAN** | `10.30.30.0/24` (Security) | * | * | * | `WAN address` | * | Auto NAT for Security operations |
-| **WAN** | `10.40.40.0/24` (Malware) | * | * | * | `WAN address` | * | (Conditional) NAT for Sandbox detonation |
+| **WAN** | `10.0.0.0/24` (MGMT) | * | * | * | `WAN address` | * | Management updates, if permitted by firewall rules |
+| **WAN** | `10.10.10.0/24` (CYBER) | * | * | * | `WAN address` | * | Optional target updates; pair with temporary scoped egress rules |
+| **WAN** | `10.20.20.0/24` (AD) | * | * | * | `WAN address` | * | Optional controlled patching only |
+| **WAN** | `10.30.30.0/24` (SECURITY) | * | * | * | `WAN address` | * | SIEM updates/feeds if needed |
+
+Do not create an outbound NAT rule for `10.40.40.0/24` (MALWARE). NAT is not a firewall policy, but omitting it provides defense in depth; the MALWARE interface must also have no WAN pass rule. HOST_MGMT and BLACKBOX use private access subnets and do not need Internet NAT through pfSense.
 
 ---
 
 ## Port Forwarding (Inbound NAT Rules)
 
-To expose internal services (such as a CTF Web server or Wazuh Agent listener) to external networks or upstream hosts:
+Do not forward pfSense GUI, SSH, Wazuh dashboard, agent ports, or vulnerable cyber targets from WAN. Remote administration uses WireGuard; the only pfSense WAN service opened is its UDP handshake port.
 
 | Interface | Proto | External Port | Target IP | Target Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **WAN** | TCP | `8443` | `10.30.30.10` | `443` | External HTTPS access to Wazuh SIEM Dashboard |
-| **WAN** | TCP | `1514` | `10.30.30.10` | `1514` | Inbound Wazuh Agent Telemetry registration |
-| **WAN** | TCP | `8080` | `10.10.10.50` | `80` | External access to Cyber Range Web Vulnerability target |
+| **WAN** | UDP | `51820` | `WAN address` | `51820` | WireGuard handshake only; not a pfSense port-forward target |
+
+With pfSense WAN attached to VirtualBox NAT, configure a VirtualBox NAT port-forward on Adapter 1: UDP host port `51820` to the current pfSense WAN IP and guest port `51820`. If Kali is behind a home router and remote access is needed, forward UDP `51820` from that router to the physical Kali host as well. CGNAT prevents unsolicited inbound connections; use an outbound tunnel or public VPN endpoint instead.
+
+Because this lab's pfSense WAN receives a private address from VirtualBox NAT, disable **Block private networks** on that WAN only if required for the forwarded handshake. Keep this protection enabled on a genuine public WAN.
 
 ---
 
@@ -38,13 +41,9 @@ To expose internal services (such as a CTF Web server or Wazuh Agent listener) t
 
 1. Navigate to **Firewall** -> **NAT**.
 2. For Outbound NAT: Click **Outbound** tab -> Select **Hybrid Outbound NAT** -> Save.
-3. For Port Forwarding: Click **Port Forward** tab -> Click **+ Add**.
-   * Interface: `WAN`
-   * Protocol: `TCP`
-   * Destination port: `8443`
-   * Redirect target IP: `10.30.30.10`
-   * Redirect target port: `443`
-   * Filter rule association: `Add associated filter rule`
-4. Click **Save** and **Apply Changes**.
+3. Review generated outbound rules and remove any rule covering MALWARE (`10.40.40.0/24`). Ensure egress is also allowed by the relevant interface firewall rules; NAT alone does not grant access.
+4. On the pfSense VM's VirtualBox **Adapter 1 (NAT) → Advanced → Port Forwarding**, add UDP host port `51820` to the current pfSense WAN IP, guest port `51820`.
+5. Under **Firewall → Rules → WAN**, add a pass rule for UDP `51820` to **WAN address**. Do not associate a redirect to an internal web dashboard.
+6. If the physical Kali host is behind a home router, forward that router's UDP port `51820` to the Kali host. Save/apply and test from a genuinely external network.
 
 <!-- minimal update -->
