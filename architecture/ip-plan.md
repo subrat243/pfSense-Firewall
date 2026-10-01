@@ -31,22 +31,25 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 * **Gateway**: `10.0.0.1`
 * **Static Host Allocations**:
   * `10.0.0.1`: pfSense WebGUI (`https://10.0.0.1:443`) & SSH (`port 22`)
-  * `10.0.0.10`: Primary Admin Workstation (Kali Host / Admin VM)
+  * `10.0.0.10`: Management Ubuntu VM
   * `10.0.0.50`: Out-of-band Hypervisor Management
+
+The physical Kali host is not addressed in this subnet. Trusted access uses HOST_MGMT; black-box testing uses BLACKBOX.
 
 ### 2. Cyber Range Network (`10.10.10.0/24`)
 * **Purpose**: Offense/Defense training, CTF boxes, vulnerable virtual machines (Metasploitable, VulnHub).
 * **Gateway**: `10.10.10.1`
 * **Static Host Allocations**:
-  * `10.10.10.10`: Attack Machine (Kali Linux / Commando VM)
-  * `10.10.10.50`: Target 01 (Metasploitable 2)
-  * `10.10.10.51`: Target 02 (Metasploitable 3 Windows)
+  * `10.10.10.10`: Metasploitable 2
+  * `10.10.10.20`: Metasploitable 3
+  * `10.10.10.30` and above: Additional vulnerable targets
+  * `10.10.10.50`: Optional SafeLine WAF
 
 ### 3. Active Directory Network (`10.20.20.0/24`)
 * **Purpose**: Enterprise Windows Domain environment including Domain Controllers, Certificate Authorities, and Windows clients.
 * **Gateway**: `10.20.20.1`
 * **Static Host Allocations**:
-  * `10.20.20.10`: Primary Domain Controller (DC01 - `corp.local`)
+  * `10.20.20.10`: Primary Domain Controller (DC01 - `lab.local`)
   * `10.20.20.11`: Secondary Domain Controller / PKI CA (DC02)
   * `10.20.20.50`: Windows 11 Enterprise Client (WKSTN-01)
 
@@ -66,11 +69,14 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
   * `10.40.40.20`: Cuckoo / CAPEv2 Sandbox Node
 * **Routing Policy**: NO cross-subnet routing permitted. DNS requests conditionally intercepted or sinkholed by Unbound DNS.
 
+Do not provide malware hosts with public DNS or WAN access. Prefer static addressing; if DHCP is required, point DNS only to an isolated INetSim/FakeNet-NG service on the same segment.
+
 ---
 
 ## DNS Server Allocation Strategy
 
-* **Default Resolver**: pfSense Unbound DNS Resolver (`x.x.x.1` on each interface gateway).
-* **AD Domain Forwarder**: Hostnames ending in `.corp.local` query `10.20.20.10` via pfSense Domain Overrides.
+* **Default Resolver**: pfSense Unbound is available to permitted lab segments; firewall and DHCP policy must restrict access by segment.
+* **AD Domain Forwarder**: AD clients query DC01 (`10.20.20.10`) directly for `lab.local`; configure Unbound domain overrides only when other permitted segments require AD name resolution.
+* **Malware DNS**: Use only a local fake-internet resolver inside `10.40.40.0/24`; do not forward malware DNS to public resolvers.
 
 <!-- minimal update -->
