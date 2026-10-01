@@ -2,7 +2,69 @@
 
 ## Lab Architecture
 
-![pfSense Lab Architecture](architecture/topology.png)
+```
+                         CYBERSECURITY HOME LAB
+                              ARCHITECTURE
+================================================================================
+
+                              INTERNET
+                                  |
+                                  |
+                           +--------------+
+                           |  HOME ROUTER |
+                           +--------------+
+                                  |
+                                  |
+                         PHYSICAL KALI HOST
+                         (8 GB RAM / 512 GB)
+                                  |
+                         +--------+--------+
+                         |                 |
+                    HOST_MGMT          BLACKBOX
+                  Host-Only NIC       Host-Only NIC
+                  192.168.56.1       192.168.100.10
+                         |                 |
+                         |                 |
+                         |            ATTACKER PATH
+                         |                 |
+                         +--------+--------+
+                                  |
+                                  |
+                         +-------------------+
+                         |      pfSense      |
+                         | Enterprise Firewall|
+                         +-------------------+
+                                  |
+          +-----------------------+-----------------------+
+          |           |            |           |           |
+          |           |            |           |           |
+          v           v            v           v           v
+
+     +---------+ +----------+ +---------+ +----------+ +----------+
+     |  MGMT   | |  CYBER   | |   AD    | | SECURITY | | MALWARE  |
+     | em1     | | em2      | | em3     | | em4      | | em5      |
+     +---------+ +----------+ +---------+ +----------+ +----------+
+     |         | |          | |         | |          | |          |
+     |10.0.0.0 | |10.10.10.0| |10.20.20.0| |10.30.30.0| |10.40.40.0|
+     |  /24    | |  /24    | |  /24    | |  /24    | |  /24    |
+     |         | |          | |         | |          | |          |
+     +---------+ +----------+ +---------+ +----------+ +----------+
+          |            |           |           |           |
+          |            |           |           |           |
+          v            v           v           v           v
+     +---------+  +---------+  +---------+  +---------+  +---------+
+     | Ubuntu  |  | Meta 2  |  |  DC01   |  | Wazuh   |  | Malware |
+     | Admin   |  | Meta 3  |  | Clients |  | Server  |  | Analysis|
+     | .10     |  | Vuln VM |  |         |  | .10     |  | VMs     |
+     +---------+  +---------+  +---------+  +---------+  +---------+
+
+
+================================================================================
+
+```
+
+
+
 
 ---
 
@@ -10,7 +72,7 @@
 
 This project documents the design, deployment, configuration, and validation of an **Enterprise-grade Virtual Firewall and Network Segmentation Infrastructure** powered by **pfSense Community Edition**.
 
-Built as the secure core of a cybersecurity home lab environment, this virtual firewall acts as the gateway between the external Internet and five isolated internal network segments (Management, Cyber Range, Active Directory, Security Infrastructure, and Malware Analysis Lab).
+Built on a physical Kali Linux host, VirtualBox runs the lab VMs and pfSense routes five isolated internal segments. The physical host remains outside those segments and uses separate HOST_MGMT and BLACKBOX host-only links; WireGuard provides narrowly scoped remote access.
 
 ---
 
@@ -21,8 +83,9 @@ Built as the secure core of a cybersecurity home lab environment, this virtual f
 | **Firewall Engine** | pfSense CE 2.7.x (FreeBSD 14.0-RELEASE base) |
 | **Virtual Machine Specifications** | 2 vCPU, 1024 MB RAM, 20 GB VDI Storage |
 | **Hypervisor** | Oracle VM VirtualBox |
-| **Total Interfaces** | 6 (1 WAN NAT + 5 Segmented Internal Networks) |
-| **Core Services** | Unbound DNS Resolver, DHCP Server, Outbound NAT, Stateful Packet Inspection |
+| **VirtualBox adapters** | 8 (1 WAN NAT + 5 internal lab segments + 2 host-only access links) |
+| **WireGuard** | Software tunnel interface; not a VirtualBox adapter |
+| **Core Services** | Stateful packet filtering, DHCP where enabled, outbound NAT for permitted segments, scoped WireGuard access |
 
 ---
 
@@ -31,11 +94,16 @@ Built as the secure core of a cybersecurity home lab environment, this virtual f
 | Interface Name | Logical Network Name | Subnet Range | Gateway IP | Description & Access Policy |
 | :--- | :--- | :--- | :--- | :--- |
 | `em0` | **WAN** | DHCP (NAT) | Variable | External Internet Access |
-| `em1` | **Management (Mgmt)** | `10.0.0.0/24` | `10.0.0.1` | Admin workstations, pfSense WebGUI/SSH, full outbound access |
-| `em2` | **Cyber Range (Cyber)** | `10.10.10.0/24` | `10.10.10.1` | CTF targets, attack platforms, penetration testing VMs |
-| `em3` | **Active Directory (AD)** | `10.20.20.0/24` | `10.20.20.1` | Domain Controllers, enterprise Windows member servers |
-| `em4` | **Security (Security)** | `10.30.30.0/24` | `10.30.30.1` | Security monitoring (Wazuh, SIEM, Suricata, syslog server) |
-| `em5` | **Malware (Malware)** | `10.40.40.0/24` | `10.40.40.1` | Isolated malware analysis sandbox; zero cross-VLAN access |
+| `em1`* | **Management (MGMT)** | `10.0.0.0/24` | `10.0.0.1` | Trusted administration segment |
+| `em2`* | **Cyber Range (CYBER)** | `10.10.10.0/24` | `10.10.10.1` | Vulnerable targets; only BLACKBOX-exposed segment |
+| `em3`* | **Active Directory (AD)** | `10.20.20.0/24` | `10.20.20.1` | Domain controllers and Windows clients |
+| `em4`* | **Security (SECURITY)** | `10.30.30.0/24` | `10.30.30.1` | SIEM and scoped log collection |
+| `em5`* | **Malware (MALWARE)** | `10.40.40.0/24` | `10.40.40.1` | Default-deny analysis segment; no WAN egress |
+| OPT5* | **HOST_MGMT** | `192.168.56.0/24` | `192.168.56.2` | Trusted physical Kali access; host `192.168.56.1` |
+| OPT6* | **BLACKBOX** | `192.168.100.0/24` | `192.168.100.1` | Attacker simulation; host `192.168.100.10` |
+| WireGuard tunnel | **WG_REMOTE** | `10.50.50.0/24` | `10.50.50.1` | Remote access to explicitly permitted MGMT/SECURITY hosts |
+
+\* Device names such as `em0`–`em7` can vary. Verify mappings by adapter MAC address before assigning pfSense roles. HOST_MGMT and BLACKBOX have no upstream gateway. The WireGuard tunnel is configured separately in pfSense.
 
 ---
 
