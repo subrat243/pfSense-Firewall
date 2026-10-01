@@ -107,7 +107,7 @@ VBoxManage modifyvm "${VM_NAME}" --nic7 hostonly
 VBoxManage modifyvm "${VM_NAME}" --hostonlyadapter7 "vboxnet0"
 VBoxManage modifyvm "${VM_NAME}" --nictype7 82545EM
 
-# Adapter 8 - External attacker simulation (host-only)
+# Adapter 8 - Black-box attacker access (host-only)
 VBoxManage modifyvm "${VM_NAME}" --nic8 hostonly
 VBoxManage modifyvm "${VM_NAME}" --hostonlyadapter8 "vboxnet1"
 VBoxManage modifyvm "${VM_NAME}" --nictype8 82545EM

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 8 network adapters: one WAN, five internal lab segments, and two host-only access networks.
+This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 8 adapters: one WAN, five internal lab segments, and two host-only access links.
 
 ---
 
@@ -21,7 +21,7 @@ This guide details the creation and configuration of the **pfSense Virtual Machi
 
 ## Virtual Network Adapter Configuration
 
-pfSense requires 6 total virtual network interface cards (NICs). Because VirtualBox WebGUI defaults to 4 NICs per VM, CLI configuration using `VBoxManage` is required to attach NIC 5 and NIC 6.
+pfSense requires 8 virtual network interface cards (NICs). Because VirtualBox WebGUI defaults to 4 NICs per VM, use `VBoxManage` or the VM settings to attach NICs 5–8. Create and configure the host-only networks first as described in [Kali host network setup](kali-network-setup.md).
 
 ### Adapter Mapping Matrix
 
@@ -31,14 +31,12 @@ pfSense requires 6 total virtual network interface cards (NICs). Because Virtual
 | **Adapter 2** | `Internal Network` | `intnet-mgmt` | `em1` | Management Network (`10.0.0.0/24`) |
 | **Adapter 3** | `Internal Network` | `intnet-cyber` | `em2` | Cyber Range Network (`10.10.10.0/24`) |
 | **Adapter 4** | `Internal Network` | `intnet-ad` | `em3` | Active Directory (`10.20.20.0/24`) |
-| **Adapter 5** | `Internal Network` | `intnet-sec` | `em4` | Security Operations (`10.30.30.0/24`) |
+| **Adapter 5** | `Internal Network` | `intnet-sec` | `em4`* | Security Operations (`10.30.30.0/24`) |
 | **Adapter 6** | `Internal Network` | `intnet-malware` | `em5` | Malware Sandbox (`10.40.40.0/24`) |
 | **Adapter 7** | `Host-only Adapter` | `vboxnet0` | `em6`* | Trusted Kali host access (`192.168.56.0/24`) |
-| **Adapter 8** | `Host-only Adapter` | `vboxnet1` | `em7`* | Black-box Kali attacker access (`192.168.100.0/24`) |
+| **Adapter 8** | `Host-only Adapter` | `vboxnet1` | `em7`* | Black-box attacker access (`192.168.100.0/24`) |
 
-\* Device names depend on VirtualBox enumeration. Confirm the actual mapping by MAC address in pfSense before assigning interfaces. Create/configure both host-only networks as described in [Kali host network setup](kali-network-setup.md) before running the provisioning script.
-
-VirtualBox Internal Networks are identified by name and do not need a separate Network Manager object: attaching VMs to the same exact name places them on the same isolated virtual switch. The host-only adapters are intentionally separate; `vboxnet0` is the trusted management path and `vboxnet1` is used only for black-box exercises.
+\* Device names are examples only. Match the VirtualBox adapter MAC addresses to pfSense devices before assigning roles. Internal Network names are created implicitly by attaching VMs to the same exact name; host-only networks are created explicitly in VirtualBox Network Manager.
 
 ---
 
