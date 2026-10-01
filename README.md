@@ -114,14 +114,14 @@ Built on a physical Kali Linux host, VirtualBox runs the lab VMs and pfSense rou
 ├── README.md                           # Main Project Documentation & Architecture Overview
 ├── architecture/
 │   ├── network-diagram.drawio          # Draw.io editable network topology source diagram
-│   ├── topology.png                    # Rendered visual topology network diagram
-│   ├── topology.svg                    # Vector graphic network topology diagram
 │   ├── ip-plan.md                      # Detailed IP allocation, VLAN, and subnetting plan
 │   └── design-rationale.md             # Detailed networking design decisions & isolation rationale
 ├── installation/
 │   ├── virtualbox.md                   # VirtualBox VM creation step-by-step guide
+│   ├── setup-vbox-vm.sh                # pfSense VM provisioning script
+│   ├── kali-network-setup.md           # Physical Kali HOST_MGMT/BLACKBOX/VPN routing modes
 │   ├── pfsense-install.md              # pfSense ISO installation walkthrough
-│   ├── interface-assignment.md         # NIC mapping (em0-em5) to networks
+│   ├── interface-assignment.md         # pfSense interface mapping and IP assignments
 │   └── dhcp.md                         # DHCP scope configuration per interface
 ├── configuration/
 │   ├── firewall-rules.md               # Complete firewall rules matrix & policy logic
@@ -130,10 +130,10 @@ Built on a physical Kali Linux host, VirtualBox runs the lab VMs and pfSense rou
 │   └── aliases.md                      # Firewall aliases definition and usage
 ├── screenshots/                        # Screenshots of WebGUI configuration states
 ├── validation/
-│   ├── connectivity.md                 # Inter-VLAN routing and ping matrix validation
+│   ├── connectivity.md                 # Segmentation, access-mode, and service validation
 │   └── troubleshooting.md              # Common setup issues and diagnostic solutions
 └── backup/
-    └── config.xml                      # Production-ready exported pfSense configuration
+   └── config.xml                      # Example pfSense configuration; review before importing
 ```
 
 ---
@@ -156,9 +156,9 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 *Before configuring any virtual machines, read these documents to understand the architectural design decisions.*
 
 1. **[Design & Architectural Rationale](architecture/design-rationale.md)**
-   * **Purpose**: Learn *why* pfSense acts as central gateway, *why* 6 NICs simulate enterprise hardware, *why* VirtualBox `intnet-*` isolates host Kali from lab networks, and *why* a dedicated Ubuntu Management VM is used.
-2. **Network Topology Diagrams ([PNG](architecture/topology.png) | [Draw.io](architecture/network-diagram.drawio))**
-   * **Purpose**: Visualize physical interface mappings (`em0`–`em5`), logical security zones, and inter-subnet routing paths.
+   * **Purpose**: Understand the five isolated lab networks, eight VirtualBox adapters, Kali host trust boundaries, and the separate Ubuntu management workstation.
+2. **[Editable Network Topology](architecture/network-diagram.drawio)**
+   * **Purpose**: Review the logical security zones, subnets, and pfSense routing paths. Adapter device names must be confirmed by MAC address on the installed system.
 3. **[Master IP Allocation & Subnet Plan](architecture/ip-plan.md)**
    * **Purpose**: Master the CIDR IP schemes (`10.0.0.0/24`, `10.10.10.0/24`, etc.), gateway addresses, static reservations, DHCP lease ranges, and Unbound DNS domain overrides.
 
@@ -168,14 +168,16 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 
 *Follow these guides sequentially to build the hypervisor virtual machines.*
 
-1. **[VirtualBox Hardware Provisioning Guide](installation/virtualbox.md)** *(or run [`installation/setup-vbox-vm.sh`](installation/setup-vbox-vm.sh))*
-   * **Purpose**: Allocate 2 vCPUs, 1024 MB RAM, 20 GB VDI disk, and attach 6 Network Adapters (NAT WAN + 5 Internal Networks).
-2. **[pfSense OS Installation Guide](installation/pfsense-install.md)**
+1. **[Kali Host Network Setup](installation/kali-network-setup.md)**
+   * **Purpose**: Create `vboxnet0` and `vboxnet1`; resolve static host addresses before provisioning pfSense.
+2. **[VirtualBox Hardware Provisioning Guide](installation/virtualbox.md)** *(or run [`installation/setup-vbox-vm.sh`](installation/setup-vbox-vm.sh))*
+   * **Purpose**: Allocate 2 vCPUs, 1024 MB RAM, 20 GB VDI disk, and attach 8 adapters (WAN, five internal lab networks, and two host-only links).
+3. **[pfSense OS Installation Guide](installation/pfsense-install.md)**
    * **Purpose**: Boot pfSense ISO, format disk partitions, install FreeBSD base, and complete initial system reboot.
-3. **[Console Interface Assignment Guide](installation/interface-assignment.md)**
-   * **Purpose**: Assign `em0` to WAN, `em1` to LAN, `em2`–`em5` to OPT1–OPT4, and configure initial LAN IP address (`192.168.1.1` / `10.0.0.1`).
-4. **Ubuntu Management VM Deployment** *(Refer to [Design Rationale](architecture/design-rationale.md#5-dedicated-management-workstation-rationale-why-ubuntu))*
-   * **Purpose**: Create Ubuntu VM on `intnet-mgmt`, obtain DHCP lease from pfSense, and launch WebGUI at `https://192.168.1.1` (or `https://10.0.0.1`).
+4. **[Console Interface Assignment Guide](installation/interface-assignment.md)**
+   * **Purpose**: Assign WAN, five lab networks, HOST_MGMT, and BLACKBOX by verified adapter mapping; set MGMT to `10.0.0.1/24` for initial administration.
+5. **Ubuntu Management VM Deployment** *(Refer to [Design Rationale](architecture/design-rationale.md#5-dedicated-management-workstation-rationale-why-ubuntu))*
+   * **Purpose**: Create Ubuntu VM on `intnet-mgmt`, obtain the configured DHCP lease, and open the pfSense WebGUI at `https://10.0.0.1`.
 
 ---
 
@@ -184,15 +186,15 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 > **Do not start installing VMs yet.** Complete these 6 steps to configure pfSense properly before any lab VMs are deployed.
 
 1. **[Step 1 — Rename Interfaces](installation/interface-assignment.md#step-1--rename-interfaces)** *(in Interface Assignment Guide)*
-   * **Purpose**: Rename `LAN` → `MGMT`, `OPT1` → `CYBER`, `OPT2` → `AD`, `OPT3` → `SECURITY`, `OPT4` → `MALWARE` so firewall rules are human-readable.
+   * **Purpose**: Name the five lab interfaces plus HOST_MGMT and BLACKBOX so firewall rules are readable; do not assume the `emN` numbering is fixed.
 2. **[Step 2 — Configure Each Interface IP](installation/interface-assignment.md#step-2--configure-each-interface-ip--gateway)** *(in Interface Assignment Guide)*
-   * **Purpose**: Assign static gateway IPs (`10.x.x.1/24`) per interface. Each IP becomes the default gateway and DNS server for that subnet.
+   * **Purpose**: Assign the documented static gateways. HOST_MGMT and BLACKBOX have no upstream gateway; DNS options are configured separately by segment.
 3. **[Step 3 — Enable DHCP Across All Subnets](installation/dhcp.md#step-3--enable-dhcp-server-across-all-subnets-post-wizard)** *(in DHCP Configuration Guide)*
-   * **Purpose**: Configure `.100`–`.200` pools on every interface so VMs automatically receive an IP, gateway, and DNS on boot.
+   * **Purpose**: Configure only the required DHCP pools. Use static addressing or local fake-DNS settings for malware analysis; do not provide public DNS to MALWARE.
 4. **[Step 4 — Verify Internet Egress](installation/pfsense-install.md#step-4--verify-internet-egress-post-wizard)** *(in Installation Guide)*
    * **Purpose**: Use **Diagnostics → Ping** to ping `1.1.1.1` (NAT check) and `google.com` (DNS check) before deploying any VMs.
 5. **[Step 5 — Create Core Network Aliases](configuration/aliases.md#step-5--create-network-subnet-aliases-post-wizard)** *(in Aliases Guide)*
-   * **Purpose**: Create `MGMT_NET`, `CYBER_NET`, `AD_NET`, `SECURITY_NET`, `MALWARE_NET` aliases used by all downstream firewall rules.
+   * **Purpose**: Create subnet and host aliases for the lab and access networks before applying firewall rules.
 6. **[Step 6 — Take Baseline VirtualBox Snapshot](installation/pfsense-install.md#step-6--take-a-baseline-virtualbox-snapshot-post-wizard)** *(in Installation Guide)*
    * **Purpose**: Snapshot the fully configured pfSense VM as `01 - Fresh pfSense` for instant rollback if anything breaks later.
 
@@ -203,13 +205,15 @@ Follow this step-by-step reading and implementation guide to build a deep theore
 *Perform these configurations via the pfSense WebGUI from inside the Ubuntu Management VM.*
 
 1. **[DHCP Server Configuration](installation/dhcp.md)**
-   * **Purpose**: Enable and define DHCP pools (`.100`–`.200`) across Management, Cyber Range, AD, Security, and Malware interfaces.
+   * **Purpose**: Configure appropriate pools for Mgmt, Cyber, AD, and Security; keep Malware DHCP disabled unless it points to an isolated fake-internet service.
 2. **[Firewall Rule Matrix & Policies](configuration/firewall-rules.md)** & **[Aliases](configuration/aliases.md)**
    * **Purpose**: Implement stateful default-deny rules, management access policies, inter-VLAN restrictions, and malware containment.
 3. **[Outbound NAT & Port Forwarding](configuration/nat.md)**
     * **Purpose**: Set up Hybrid/Manual Outbound NAT rules for external internet access from authorized internal subnets.
 4. **[Unbound DNS Resolver & Hardening](configuration/dns-resolver.md)**
-    * **Purpose**: Configure pfSense Unbound DNS resolver with Active Directory domain overrides (`.corp.local`).
+   * **Purpose**: Configure Unbound and the `lab.local` domain override strategy; direct AD clients to DC01 for domain DNS.
+5. **[Kali Host Network Setup](installation/kali-network-setup.md)**
+   * **Purpose**: Switch safely between trusted HOST_MGMT and restricted BLACKBOX routes; configure WireGuard client route scope.
 
 ---
 
