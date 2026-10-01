@@ -38,10 +38,10 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 ### Issue 3: No Outbound Internet Egress from Internal Subnets
 
 * **Symptom**: Internal hosts can ping pfSense gateway `10.x.x.1`, but cannot ping `8.8.8.8` or reach external websites.
-* **Root Cause**: Outbound NAT rule missing for subnets, or default gateway down.
+* **Root Cause**: An explicitly permitted segment lacks its required NAT rule, or the WAN gateway is down. Malware should never have WAN egress.
 * **Resolution**:
   1. Log into WebGUI -> Navigate to **Status** -> **Gateways**. Confirm `WAN_DHCP` status is `Online`.
-  2. Navigate to **Firewall** -> **NAT** -> **Outbound**. Ensure Mode is set to **Automatic** or **Hybrid**, and rules exist covering `10.0.0.0/8`.
+  2. Navigate to **Firewall** -> **NAT** -> **Outbound**. Check for a rule covering only the segment that is intended to reach WAN, and verify its interface firewall rules permit that traffic. Do not add a broad rule for all `10.0.0.0/8`; ensure MALWARE (`10.40.40.0/24`) has no WAN rule.
 
 ---
 
@@ -61,11 +61,45 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 * **Root Cause**: Unbound DNS service stopped or interface binding restricted.
 * **Resolution**:
   1. Go to **Services** -> **DNS Resolver**. Verify service status icon is green (Running).
-  2. Under **Network Interfaces**, select **All** to ensure Unbound responds on all internal subnets.
+  2. Under **Network Interfaces**, select only permitted interfaces. Exclude MALWARE; use a local fake-DNS service inside that segment instead.
 
 ---
 
-### Issue 6: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
+### Issue 6: Physical Kali Cannot Reach a Lab Gateway
+
+* **Symptom**: Kali can reach neither `10.0.0.1` nor other lab gateways through HOST_MGMT.
+* **Root Causes & Diagnostics**: `vboxnet0` is missing/down, its address is wrong, pfSense HOST_MGMT is not assigned, or routes are absent/pointing elsewhere.
+* **Resolution**:
+  1. Confirm the Kali host has `192.168.56.1/24` on `vboxnet0` and can ping pfSense at `192.168.56.2`.
+  2. Confirm the pfSense adapter is attached to `vboxnet0`, its interface has `192.168.56.2/24`, and no upstream gateway is set.
+  3. Check `ip route get 10.30.30.10`; add the documented HOST_MGMT routes through `192.168.56.2` if needed. Do not attach Kali to `intnet-mgmt`.
+
+---
+
+### Issue 7: BLACKBOX Cannot Reach CYBER or Reaches Protected Networks
+
+* **Symptom**: CYBER targets are unreachable, or BLACKBOX scans reach MGMT/AD/SECURITY/MALWARE.
+* **Root Causes & Diagnostics**: HOST_MGMT is still active, a route uses the trusted gateway, the BLACKBOX interface mapping/address is wrong, or rule order is incorrect.
+* **Resolution**:
+  1. Disconnect HOST_MGMT and remove routes through `192.168.56.2`.
+  2. Confirm Kali uses `192.168.100.10/24`, pfSense BLACKBOX is `192.168.100.1/24`, and `ip route get 10.10.10.10` selects `192.168.100.1`.
+  3. Route probes through BLACKBOX; verify protected destinations are blocked before the CYBER allow rule. Do not interpret scans that use Kali's normal default route.
+
+---
+
+### Issue 8: WireGuard Has No Recent Handshake
+
+* **Symptom**: `sudo wg` shows no recent handshake from an external network.
+* **Root Causes & Diagnostics**: A missing UDP port-forward in the home router or VirtualBox NAT, incorrect guest WAN IP, absent WAN UDP `51820` rule, or ISP CGNAT.
+* **Resolution**:
+  1. Verify the peer keys, endpoint, listen port, and pfSense tunnel status.
+  2. Forward UDP `51820` from the upstream router (if present) to Kali, then from VirtualBox Adapter 1 host port `51820` to the pfSense WAN IP/port `51820`.
+  3. On the isolated VirtualBox NAT WAN only, disable **Block private networks** if it prevents the forwarded handshake. Keep it enabled on public WANs.
+  4. Test from a genuinely external connection. If the ISP uses CGNAT, use an outbound tunnel or public VPN endpoint.
+
+---
+
+### Issue 9: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
 
 ![VirtualBox Linux Kernel Panic Diagnostic Screen](../screenshots/09-troubleshooting-kernel-panic.png)
 
