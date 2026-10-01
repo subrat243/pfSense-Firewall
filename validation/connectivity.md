@@ -2,54 +2,34 @@
 
 ## Overview
 
-This document provides automated and manual verification procedures to ensure inter-VLAN routing, stateful packet filtering, NAT outbound Internet access, and DNS resolution function strictly according to design.
+Run these tests from the stated source interface or VM. pfSense evaluates rules on ingress, and tests from Kali must use the correct HOST_MGMT, BLACKBOX, or WireGuard route. Do not use source spoofing as a substitute for testing an actual segment.
 
 ---
 
 ## Inter-VLAN Connectivity Test Matrix
 
-| Source Subnet | Target Subnet | Protocol / Port | Expected Result | Rationale / Policy |
-| :--- | :--- | :--- | :--- | :--- |
-| **Management (`10.0.0.10`)** | `10.0.0.1` (pfSense) | TCP 443 / 22 | **PASS** | Allowed by Rule 1 (WebGUI / SSH access) |
-| **Management (`10.0.0.10`)** | `10.10.10.10` (Cyber) | ICMP / Ping | **PASS** | Management allowed to manage Cyber hosts |
-| **Management (`10.0.0.10`)** | `10.20.20.10` (AD) | TCP 389 (LDAP) | **PASS** | Management allowed full internal access |
-| **Cyber Range (`10.10.10.10`)**| `10.0.0.10` (Mgmt) | ICMP / Ping | **FAIL (Blocked)** | Cyber Range blocked from Management network |
-| **Cyber Range (`10.10.10.10`)**| `10.20.20.10` (AD) | TCP 445 (SMB) | **PASS** | Cyber Range allowed access to AD targets |
-| **Active Dir. (`10.20.20.10`)**| `10.0.0.10` (Mgmt) | TCP 443 | **FAIL (Blocked)** | AD blocked from reaching Management hosts |
-| **Malware (`10.40.40.10`)** | `10.0.0.10` (Mgmt) | ICMP / Ping | **FAIL (Blocked)** | **CRITICAL: Sandbox isolated** |
-| **Malware (`10.40.40.10`)** | `10.10.10.10` (Cyber) | ICMP / Ping | **FAIL (Blocked)** | **CRITICAL: Sandbox isolated** |
-| **Any Internal Subnet** | `8.8.8.8` / Internet | ICMP / TCP 80 | **PASS** | Outbound NAT internet egress permitted |
+| Source | Destination | Test | Expected result |
+| :--- | :--- | :--- | :--- |
+| Management VM (`10.0.0.10`) | CYBER/AD/SECURITY/MALWARE hosts | Required management service | Pass only per MGMT policy |
+| Physical Kali via HOST_MGMT (`192.168.56.1`) | Each `10.x` gateway and selected lab host | `ping` / service test | Pass through `192.168.56.2` |
+| CYBER VM (`10.10.10.x`) | AD (`10.20.20.x`) | `nc -zv 10.20.20.10 445` | Block unless temporary pivot rule is enabled |
+| CYBER VM | MGMT or MALWARE | `ping`/service test | Block |
+| CYBER VM | SIEM (`10.30.30.10`) | Test only configured syslog/Wazuh/Beats ports | Pass to collector only; other ports blocked |
+| AD VM (`10.20.20.x`) | SIEM (`10.30.30.10`) | Test configured ingest port | Pass only to collector and configured port |
+| AD VM | CYBER or MALWARE | `ping`/service test | Block |
+| MALWARE VM (`10.40.40.x`) | WAN and other routed segments | `ping`/service/DNS test | Block; fake DNS stays local to malware segment |
+| BLACKBOX Kali (`192.168.100.10`) | CYBER (`10.10.10.0/24`) | `nmap -Pn 10.10.10.0/24` | Reachable targets only |
+| BLACKBOX Kali | MGMT/AD/SECURITY/MALWARE | `nmap -Pn <subnet>` | No reachable hosts; scan routes must use `192.168.100.1` |
+| WireGuard peer (`10.50.50.2`) | `10.0.0.1:443`, `10.0.0.10:22`, `10.30.30.10:443` | `nc -zv <host> <port>` | Pass only for configured allow rules |
+| WireGuard peer | CYBER/AD/MALWARE or unlisted service ports | `nc -zv <host> <port>` | Block |
 
----
+Do not expect ICMP to pass over WireGuard unless a separate ICMP rule was deliberately added. Internet egress is not a universal pass: enable and test it only for segments with explicit firewall and NAT policy.
 
-## Verification Test Script
+### Access-mode checks
 
-Run this script on a test host in each subnet to validate security enforcement:
+Use [Kali Host Network Setup](../installation/kali-network-setup.md) to switch modes. In HOST_MGMT mode, verify `ip route get 10.30.30.10` uses `192.168.56.2`. In BLACKBOX mode, verify it uses `192.168.100.1` and that the HOST_MGMT profile is disconnected. Protected-range scans must travel through pfSense BLACKBOX so they test firewall denies, not Kali's default Internet route.
 
-```bash
-#!/usr/bin/env bash
-# Network Connectivity Validation Script
-
-TARGETS=(
-    "10.0.0.1:443:pfSense WebGUI"
-    "10.0.0.10:22:Management Host"
-    "10.10.10.1:53:Cyber Gateway DNS"
-    "10.20.20.10:389:Active Directory LDAP"
-    "10.30.30.10:514:Security SIEM Syslog"
-    "10.40.40.10:80:Malware Sandbox"
-    "1.1.1.1:53:Public Internet DNS"
-)
-
-echo "=== Running pfSense Firewall Verification Suite ==="
-for entry in "${TARGETS[@]}"; do
-    IFS=":" read -r ip port desc <<< "$entry"
-    if nc -z -w 2 "$ip" "$port" 2>/dev/null; then
-        echo -e "[\e[32mREACHABLE\e[0m] $ip:$port -> $desc"
-    else
-        echo -e "[\e[31mBLOCKED\e[0m]   $ip:$port -> $desc"
-    fi
-done
-```
+For WireGuard, test from an external network and confirm `sudo wg` shows a recent handshake. Then test only the listed allowed services and at least one unlisted destination/port.
 
 ---
 
