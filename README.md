@@ -6,52 +6,69 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ## Table of Contents
 
-- [1. Architecture Overview](#1-architecture-overview)
-  - [1.1 Lab Architecture Diagram](#11-lab-architecture-diagram)
-  - [1.2 Network Subnet & Interface Design](#12-network-subnet--interface-design)
-  - [1.3 Core Hosts & Addressing](#13-core-hosts--addressing)
-- [2. Recommended Build Order](#2-recommended-build-order)
-- [3. Physical Host Setup (Kali Linux)](#3-physical-host-setup-kali-linux)
-- [4. VirtualBox Virtual Networking](#4-virtualbox-virtual-networking)
-  - [4.1 Internal Networks (Lab LAN Segments)](#41-internal-networks-lab-lan-segments)
-  - [4.2 Host-Only Networks (Kali Access Links)](#42-host-only-networks-kali-access-links)
-  - [4.3 Whitelisting Host-Only Subnets](#43-whitelisting-host-only-subnets)
-- [5. pfSense — Router & Enterprise Firewall](#5-pfsense--router--enterprise-firewall)
-  - [5.1 VM Sizing & Provisioning](#51-vm-sizing--provisioning)
-  - [5.2 Interface Assignment & Mapping Reference](#52-interface-assignment--mapping-reference)
-  - [5.3 Stateful Filtering Principles & Ingress Evaluation](#53-stateful-filtering-principles--ingress-evaluation)
-  - [5.4 Firewall Rule Matrices Per Interface](#54-firewall-rule-matrices-per-interface)
-  - [5.5 Overall Firewall Traffic Flow Diagram](#55-overall-firewall-traffic-flow-diagram)
-  - [5.6 Configuration Backup Protocol](#56-configuration-backup-protocol)
-  - [5.7 HOST_MGMT — Trusted Kali Administration Access](#57-host_mgmt--trusted-kali-administration-access)
-  - [5.8 BLACKBOX — External Attacker Simulation](#58-blackbox--external-attacker-simulation)
-  - [5.9 Kali Access Modes & Clean Switching Scripts](#59-kali-access-modes--clean-switching-scripts)
-- [6. Segment 1 — Management Enclave (`10.0.0.0/24`)](#6-segment-1--management-enclave-1000024)
-- [7. Segment 2 — Cyber Range & DMZ (`10.10.10.0/24`)](#7-segment-2--cyber-range--dmz-101010024)
-  - [7.1 Core & Intermediate Target Workstations](#71-core--intermediate-target-workstations)
-  - [7.2 Sysmon Monitoring on Metasploitable 3 (Server 2008 R2)](#72-sysmon-monitoring-on-metasploitable-3-server-2008-r2)
-  - [7.3 SafeLine WAF Reverse Proxy Deployment](#73-safeline-waf-reverse-proxy-deployment)
-- [8. Segment 3 — Active Directory Lab (`10.20.20.0/24`)](#8-segment-3--active-directory-lab-102020024)
-  - [8.1 Domain Controller & Forest Setup](#81-domain-controller--forest-setup)
-  - [8.2 Client Workstation Join & Auditing Configuration](#82-client-workstation-join--auditing-configuration)
-  - [8.3 Attack Tooling & Security Exercises](#83-attack-tooling--security-exercises)
-- [9. Segment 4 — Security Monitoring & SIEM (`10.30.30.0/24`)](#9-segment-4--security-monitoring--siem-103030024)
-  - [9.1 Detection Stack & Architecture](#91-detection-stack--architecture)
-  - [9.2 Log Collection & Ingestion Channels](#92-log-collection--ingestion-channels)
-  - [9.3 Hands-On Detection Engineering Scenarios](#93-hands-on-detection-engineering-scenarios)
-- [10. Segment 5 — Malware Analysis Sandbox (`10.40.40.0/24`)](#10-segment-5--malware-analysis-sandbox-104040024)
-  - [10.1 Multi-Layered Sandbox Isolation](#101-multi-layered-sandbox-isolation)
-  - [10.2 Fake Internet Simulation (INetSim / FakeNet-NG)](#102-fake-internet-simulation-inetsim--fakenet-ng)
-  - [10.3 Analysis Tooling & Golden Image Snapshots](#103-analysis-tooling--golden-image-snapshots)
-- [11. Comprehensive Component & Download Reference](#11-comprehensive-component--download-reference)
-- [12. Testing & Validation Procedures](#12-testing--validation-procedures)
-  - [12.1 Inter-Segment Connectivity Matrix Validation](#121-inter-segment-connectivity-matrix-validation)
-  - [12.2 Service Reachability Checks](#122-service-reachability-checks)
-  - [12.3 End-to-End SOC Detection Proof](#123-end-to-end-soc-detection-proof)
-  - [12.4 Malware Sandbox Isolation Verification](#124-malware-sandbox-isolation-verification)
-  - [12.5 Access Mode Boundary Proofs](#125-access-mode-boundary-proofs)
-- [13. Master Lab Build Checklist](#13-master-lab-build-checklist)
-- [14. Repository Structure & Modular Sub-Guides](#14-repository-structure--modular-sub-guides)
+- [Home Cybersecurity Lab — Enterprise Firewall \& Network Segmentation Build Documentation](#home-cybersecurity-lab--enterprise-firewall--network-segmentation-build-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [1. Architecture Overview](#1-architecture-overview)
+    - [1.1 Lab Architecture Diagram](#11-lab-architecture-diagram)
+    - [1.2 Network Subnet \& Interface Design](#12-network-subnet--interface-design)
+    - [1.3 Core Hosts \& Addressing](#13-core-hosts--addressing)
+  - [2. Recommended Build Order](#2-recommended-build-order)
+  - [3. Physical Host Setup (Kali Linux)](#3-physical-host-setup-kali-linux)
+    - [3.1 Hypervisor Installation](#31-hypervisor-installation)
+    - [3.2 Host Security Recommendation](#32-host-security-recommendation)
+  - [4. VirtualBox Virtual Networking](#4-virtualbox-virtual-networking)
+    - [4.1 Internal Networks (Lab LAN Segments)](#41-internal-networks-lab-lan-segments)
+    - [4.2 Host-Only Networks (Kali Access Links)](#42-host-only-networks-kali-access-links)
+    - [4.3 Whitelisting Host-Only Subnets](#43-whitelisting-host-only-subnets)
+  - [5. pfSense — Router \& Enterprise Firewall](#5-pfsense--router--enterprise-firewall)
+    - [5.1 VM Sizing \& Provisioning](#51-vm-sizing--provisioning)
+      - [Automated Provisioning via CLI](#automated-provisioning-via-cli)
+    - [5.2 Interface Assignment \& Mapping Reference](#52-interface-assignment--mapping-reference)
+    - [5.3 Stateful Filtering Principles \& Ingress Evaluation](#53-stateful-filtering-principles--ingress-evaluation)
+    - [5.4 Firewall Rule Matrices Per Interface](#54-firewall-rule-matrices-per-interface)
+      - [1. Management Interface (`MGMT` / `em1`)](#1-management-interface-mgmt--em1)
+      - [2. Cyber Range Interface (`CYBER` / `em2`)](#2-cyber-range-interface-cyber--em2)
+      - [3. Active Directory Interface (`AD` / `em3`)](#3-active-directory-interface-ad--em3)
+      - [4. Security Operations Interface (`SECURITY` / `em4`)](#4-security-operations-interface-security--em4)
+      - [5. Malware Sandbox Interface (`MALWARE` / `em5`)](#5-malware-sandbox-interface-malware--em5)
+      - [6. HOST\_MGMT Interface (`HOST_MGMT` / `em6`)](#6-host_mgmt-interface-host_mgmt--em6)
+      - [7. BLACKBOX Interface (`BLACKBOX` / `em7`)](#7-blackbox-interface-blackbox--em7)
+    - [5.5 Overall Firewall Traffic Flow Diagram](#55-overall-firewall-traffic-flow-diagram)
+    - [5.6 Configuration Backup Protocol](#56-configuration-backup-protocol)
+    - [5.7 HOST\_MGMT — Trusted Kali Administration Access](#57-host_mgmt--trusted-kali-administration-access)
+    - [5.8 BLACKBOX — External Attacker Simulation](#58-blackbox--external-attacker-simulation)
+    - [5.9 Kali Access Modes \& Clean Switching Scripts](#59-kali-access-modes--clean-switching-scripts)
+      - [Mode A: Full Lab Administration (`lab-trusted.sh`)](#mode-a-full-lab-administration-lab-trustedsh)
+      - [Mode B: External Black-Box Attacker (`lab-blackbox.sh`)](#mode-b-external-black-box-attacker-lab-blackboxsh)
+  - [6. Segment 1 — Management Enclave (`10.0.0.0/24`)](#6-segment-1--management-enclave-1000024)
+  - [7. Segment 2 — Cyber Range \& DMZ (`10.10.10.0/24`)](#7-segment-2--cyber-range--dmz-101010024)
+    - [7.1 Core \& Intermediate Target Workstations](#71-core--intermediate-target-workstations)
+    - [7.2 Sysmon Monitoring on Metasploitable 3 (Server 2008 R2)](#72-sysmon-monitoring-on-metasploitable-3-server-2008-r2)
+    - [7.3 SafeLine WAF Reverse Proxy Deployment](#73-safeline-waf-reverse-proxy-deployment)
+  - [8. Segment 3 — Active Directory Lab (`10.20.20.0/24`)](#8-segment-3--active-directory-lab-102020024)
+    - [8.1 Domain Controller \& Forest Setup](#81-domain-controller--forest-setup)
+    - [8.2 Client Workstation Join \& Auditing Configuration](#82-client-workstation-join--auditing-configuration)
+    - [8.3 Attack Tooling \& Security Exercises](#83-attack-tooling--security-exercises)
+  - [9. Segment 4 — Security Monitoring \& SIEM (`10.30.30.0/24`)](#9-segment-4--security-monitoring--siem-103030024)
+    - [9.1 Detection Stack \& Architecture](#91-detection-stack--architecture)
+    - [9.2 Log Collection \& Ingestion Channels](#92-log-collection--ingestion-channels)
+    - [9.3 Hands-On Detection Engineering Scenarios](#93-hands-on-detection-engineering-scenarios)
+  - [10. Segment 5 — Malware Analysis Sandbox (`10.40.40.0/24`)](#10-segment-5--malware-analysis-sandbox-104040024)
+    - [10.1 Multi-Layered Sandbox Isolation](#101-multi-layered-sandbox-isolation)
+    - [10.2 Fake Internet Simulation (INetSim / FakeNet-NG)](#102-fake-internet-simulation-inetsim--fakenet-ng)
+    - [10.3 Analysis Tooling \& Golden Image Snapshots](#103-analysis-tooling--golden-image-snapshots)
+  - [11. Comprehensive Component \& Download Reference](#11-comprehensive-component--download-reference)
+  - [12. Testing \& Validation Procedures](#12-testing--validation-procedures)
+    - [12.1 Inter-Segment Connectivity Matrix Validation](#121-inter-segment-connectivity-matrix-validation)
+    - [12.2 Service Reachability Checks](#122-service-reachability-checks)
+    - [12.3 End-to-End SOC Detection Proof](#123-end-to-end-soc-detection-proof)
+    - [12.4 Malware Sandbox Isolation Verification](#124-malware-sandbox-isolation-verification)
+    - [12.5 Access Mode Boundary Proofs](#125-access-mode-boundary-proofs)
+      - [Mode A (HOST\_MGMT) Verification:](#mode-a-host_mgmt-verification)
+      - [Mode B (BLACKBOX) Isolation Proof:](#mode-b-blackbox-isolation-proof)
+  - [13. Master Lab Build Checklist](#13-master-lab-build-checklist)
+  - [14. Repository Structure \& Modular Sub-Guides](#14-repository-structure--modular-sub-guides)
+  - [License \& Attribution](#license--attribution)
 
 ---
 
@@ -61,53 +78,6 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ![Home lab network architecture](assets/home_lab_network_architecture.png)
 
-```text
-                         CYBERSECURITY HOME LAB
-                              ARCHITECTURE
-================================================================================
-
-                              INTERNET
-                                  │
-                           ┌──────────────┐
-                           │  HOME ROUTER │
-                           └──────────────┘
-                                  │
-                         PHYSICAL KALI HOST
-                         (Bare-Metal Workstation)
-                                  │
-                         ┌────────┴────────┐
-                         │                 │
-                    HOST_MGMT          BLACKBOX
-                  Host-Only NIC       Host-Only NIC
-                  192.168.56.1       192.168.100.10
-                   (vboxnet0)          (vboxnet1)
-                         │                 │
-                         │            ATTACKER PATH
-                         │                 │
-                         └────────┬────────┘
-                                  │
-                         ┌───────────────────┐
-                         │      pfSense      │
-                         │ Enterprise Router │
-                         │ & Stateful FW     │
-                         └───────────────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┬───────────────────────┐
-          │                       │                       │                       │
-     ┌────┴────┐             ┌────┴────┐             ┌────┴────┐             ┌────┴────┐             ┌─────────┐
-     │  MGMT   │             │  CYBER  │             │   AD    │             │SECURITY │             │ MALWARE │
-     │  em1    │             │  em2    │             │  em3    │             │  em4    │             │  em5    │
-     └────┬────┘             └────┬────┘             └────┬────┘             └────┬────┘             └────┬────┘
-     10.0.0.0/24            10.10.10.0/24           10.20.20.0/24           10.30.30.0/24           10.40.40.0/24
-          │                       │                       │                       │                       │
-     ┌────┴────┐             ┌────┴────┐             ┌────┴────┐             ┌────┴────┐             ┌────┴────┐
-     │ Ubuntu  │             │ Meta 2  │             │  DC01   │             │ Wazuh   │             │ FLARE   │
-     │ Admin   │             │ Meta 3  │             │ Windows │             │ Server  │             │ REMnux  │
-     │ .10     │             │ SafeLine│             │ Clients │             │ .10     │             │ Sandbox │
-     └─────────┘             └─────────┘             └─────────┘             └─────────┘             └─────────┘
-
-================================================================================
-```
 
 **Key Architectural Concept:**
 - **Kali Linux is the physical host operating system**, not a virtual machine.
@@ -120,16 +90,16 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ### 1.2 Network Subnet & Interface Design
 
-| Network Name | Interface | Subnet Range | pfSense IP | Attachment Type | Purpose & Policy |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **WAN** | `em0` | DHCP (NAT) | Assigned by NAT | VirtualBox NAT | Upstream Internet access via host Wi-Fi/Ethernet |
-| **Mgmt** | `em1` (LAN) | `10.0.0.0/24` | `10.0.0.1` | Internal (`intnet-mgmt`) | Dedicated administrative enclave; pfSense WebGUI |
-| **Cyber Range** | `em2` (OPT1) | `10.10.10.0/24` | `10.10.10.1` | Internal (`intnet-cyber`)| Deliberately vulnerable systems; doubles as lab DMZ |
-| **AD Lab** | `em3` (OPT2) | `10.20.20.0/24` | `10.20.20.1` | Internal (`intnet-ad`) | Windows Domain Controller, forest members, Kerberos |
-| **Security** | `em4` (OPT3) | `10.30.30.0/24` | `10.30.30.1` | Internal (`intnet-sec`) | Centralized monitoring, Wazuh SIEM, log collection |
-| **Malware** | `em5` (OPT4) | `10.40.40.0/24` | `10.40.40.1` | Internal (`intnet-malware`)| Quarantined dynamic detonation; zero WAN egress |
-| **HOST_MGMT** | `em6` (OPT5) | `192.168.56.0/24` | `192.168.56.2` | Host-only (`vboxnet0`) | Trusted physical Kali management path |
-| **BLACKBOX** | `em7` (OPT6) | `192.168.100.0/24` | `192.168.100.1`| Host-only (`vboxnet1`) | External black-box penetration testing path |
+| Network Name    | Interface    | Subnet Range       | pfSense IP      | Attachment Type             | Purpose & Policy                                    |
+| :-------------- | :----------- | :----------------- | :-------------- | :-------------------------- | :-------------------------------------------------- |
+| **WAN**         | `em0`        | DHCP (NAT)         | Assigned by NAT | VirtualBox NAT              | Upstream Internet access via host Wi-Fi/Ethernet    |
+| **Mgmt**        | `em1` (LAN)  | `10.0.0.0/24`      | `10.0.0.1`      | Internal (`intnet-mgmt`)    | Dedicated administrative enclave; pfSense WebGUI    |
+| **Cyber Range** | `em2` (OPT1) | `10.10.10.0/24`    | `10.10.10.1`    | Internal (`intnet-cyber`)   | Deliberately vulnerable systems; doubles as lab DMZ |
+| **AD Lab**      | `em3` (OPT2) | `10.20.20.0/24`    | `10.20.20.1`    | Internal (`intnet-ad`)      | Windows Domain Controller, forest members, Kerberos |
+| **Security**    | `em4` (OPT3) | `10.30.30.0/24`    | `10.30.30.1`    | Internal (`intnet-sec`)     | Centralized monitoring, Wazuh SIEM, log collection  |
+| **Malware**     | `em5` (OPT4) | `10.40.40.0/24`    | `10.40.40.1`    | Internal (`intnet-malware`) | Quarantined dynamic detonation; zero WAN egress     |
+| **HOST_MGMT**   | `em6` (OPT5) | `192.168.56.0/24`  | `192.168.56.2`  | Host-only (`vboxnet0`)      | Trusted physical Kali management path               |
+| **BLACKBOX**    | `em7` (OPT6) | `192.168.100.0/24` | `192.168.100.1` | Host-only (`vboxnet1`)      | External black-box penetration testing path         |
 
 > [!NOTE]
 > Device identifiers (`em0`–`em7`) represent default FreeBSD mappings when using Intel PRO/1000 MT adapters (`82540EM` or `82545EM`). Always verify exact interface-to-adapter assignments by checking MAC addresses under pfSense **Interfaces → Assignments**.
@@ -138,20 +108,20 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ### 1.3 Core Hosts & Addressing
 
-| Host Name / Role | Segment | Assigned IP | Description |
-| :--- | :--- | :--- | :--- |
-| **pfSense Firewall** | Core Gateway | `10.0.0.1`<br>`192.168.56.2`<br>`192.168.100.1` | Central router, Unbound DNS, stateful packet filter, DHCP server |
-| **Management Ubuntu** | Mgmt | `10.0.0.10` | GUI management workstation for out-of-band administration |
-| **Metasploitable 2** | Cyber Range | `10.10.10.10` | Legacy unpatched Linux target |
-| **Metasploitable 3** | Cyber Range | `10.10.10.20` | Windows Server 2008 R2 target running Sysmon telemetry |
-| **SafeLine WAF** | Cyber Range | `10.10.10.50` | Reverse proxy WAF protecting web applications |
-| **Primary DC (`DC01`)** | Active Directory | `10.20.20.10` | Windows Server 2022 Domain Controller (`lab.local`) |
-| **Windows Clients** | Active Directory | `10.20.20.20`, `.30` | Domain-joined client endpoints |
-| **Wazuh / SIEM Host** | Security | `10.30.30.10` | Security Onion / Wazuh Manager, Indexer & Dashboard |
-| **FLARE VM / REMnux** | Malware | `10.40.40.10` | Reverse engineering & behavioral analysis sandboxes |
-| **FakeNet / INetSim** | Malware | `10.40.40.20` | Local simulated Internet service responder |
-| **Physical Kali (Admin)** | HOST_MGMT | `192.168.56.1` | Mode A: Trusted administrator on `vboxnet0` |
-| **Physical Kali (Attacker)**| BLACKBOX | `192.168.100.10` | Mode B: Simulated external adversary on `vboxnet1` |
+| Host Name / Role             | Segment          | Assigned IP                                     | Description                                                      |
+| :--------------------------- | :--------------- | :---------------------------------------------- | :--------------------------------------------------------------- |
+| **pfSense Firewall**         | Core Gateway     | `10.0.0.1`<br>`192.168.56.2`<br>`192.168.100.1` | Central router, Unbound DNS, stateful packet filter, DHCP server |
+| **Management Ubuntu**        | Mgmt             | `10.0.0.10`                                     | GUI management workstation for out-of-band administration        |
+| **Metasploitable 2**         | Cyber Range      | `10.10.10.10`                                   | Legacy unpatched Linux target                                    |
+| **Metasploitable 3**         | Cyber Range      | `10.10.10.20`                                   | Windows Server 2008 R2 target running Sysmon telemetry           |
+| **SafeLine WAF**             | Cyber Range      | `10.10.10.50`                                   | Reverse proxy WAF protecting web applications                    |
+| **Primary DC (`DC01`)**      | Active Directory | `10.20.20.10`                                   | Windows Server 2022 Domain Controller (`lab.local`)              |
+| **Windows Clients**          | Active Directory | `10.20.20.20`, `.30`                            | Domain-joined client endpoints                                   |
+| **Wazuh / SIEM Host**        | Security         | `10.30.30.10`                                   | Security Onion / Wazuh Manager, Indexer & Dashboard              |
+| **FLARE VM / REMnux**        | Malware          | `10.40.40.10`                                   | Reverse engineering & behavioral analysis sandboxes              |
+| **FakeNet / INetSim**        | Malware          | `10.40.40.20`                                   | Local simulated Internet service responder                       |
+| **Physical Kali (Admin)**    | HOST_MGMT        | `192.168.56.1`                                  | Mode A: Trusted administrator on `vboxnet0`                      |
+| **Physical Kali (Attacker)** | BLACKBOX         | `192.168.100.10`                                | Mode B: Simulated external adversary on `vboxnet1`               |
 
 ---
 
@@ -220,13 +190,13 @@ VirtualBox **Internal Networks** create isolated virtual switches that connect g
 
 In VirtualBox: **Tools → Network Manager → Internal Networks** (or dynamically created in VM settings):
 
-| Internal Network Name | Logical Segment | Subnet | Gateway |
-| :--- | :--- | :--- | :--- |
-| `intnet-mgmt` | Management | `10.0.0.0/24` | `10.0.0.1` |
-| `intnet-cyber` | Cyber Range / DMZ | `10.10.10.0/24` | `10.10.10.1` |
-| `intnet-ad` | Active Directory | `10.20.20.0/24` | `10.20.20.1` |
-| `intnet-sec` | Security / SIEM | `10.30.30.0/24` | `10.30.30.1` |
-| `intnet-malware`| Malware Sandbox | `10.40.40.0/24` | `10.40.40.1` |
+| Internal Network Name | Logical Segment   | Subnet          | Gateway      |
+| :-------------------- | :---------------- | :-------------- | :----------- |
+| `intnet-mgmt`         | Management        | `10.0.0.0/24`   | `10.0.0.1`   |
+| `intnet-cyber`        | Cyber Range / DMZ | `10.10.10.0/24` | `10.10.10.1` |
+| `intnet-ad`           | Active Directory  | `10.20.20.0/24` | `10.20.20.1` |
+| `intnet-sec`          | Security / SIEM   | `10.30.30.0/24` | `10.30.30.1` |
+| `intnet-malware`      | Malware Sandbox   | `10.40.40.0/24` | `10.40.40.1` |
 
 ---
 
@@ -234,10 +204,10 @@ In VirtualBox: **Tools → Network Manager → Internal Networks** (or dynamical
 
 Because a physical host cannot attach directly to a VirtualBox *internal* network, two **Host-Only Networks** are created to bridge Kali to the firewall:
 
-| Network Name | Interface | Kali Host IP | pfSense IP | Role |
-| :--- | :--- | :--- | :--- | :--- |
-| `vboxnet0` | Adapter 7 | `192.168.56.1/24` | `192.168.56.2/24` | **HOST_MGMT**: Trusted administration path |
-| `vboxnet1` | Adapter 8 | `192.168.100.10/24` | `192.168.100.1/24` | **BLACKBOX**: Untrusted adversary path |
+| Network Name | Interface | Kali Host IP        | pfSense IP         | Role                                       |
+| :----------- | :-------- | :------------------ | :----------------- | :----------------------------------------- |
+| `vboxnet0`   | Adapter 7 | `192.168.56.1/24`   | `192.168.56.2/24`  | **HOST_MGMT**: Trusted administration path |
+| `vboxnet1`   | Adapter 8 | `192.168.100.10/24` | `192.168.100.1/24` | **BLACKBOX**: Untrusted adversary path     |
 
 > [!IMPORTANT]
 > Disable the built-in VirtualBox DHCP server on both `vboxnet0` and `vboxnet1`. Both the physical host and pfSense use static IP configurations.
@@ -262,14 +232,14 @@ After updating the whitelist, create `vboxnet0` and `vboxnet1` in the VirtualBox
 
 ### 5.1 VM Sizing & Provisioning
 
-| Hardware Parameter | Specification | Purpose / Rationale |
-| :--- | :--- | :--- |
-| **VM Name** | `pfSense-Firewall` | Core virtual appliance |
-| **OS Type** | FreeBSD (64-bit) | Base operating system for pfSense CE |
-| **Processors** | `2 vCPU` | Handles multi-queue packet inspection and routing |
-| **RAM** | `1024 MB – 2048 MB` | 1GB is baseline; 2GB recommended if running Snort/Suricata |
-| **Storage Disk** | `20 GB VDI` | Dynamically allocated storage for logs and states |
-| **Network Adapters** | **8 Adapters** | 1 WAN + 5 Internal Segments + 2 Host-Only Access Links |
+| Hardware Parameter   | Specification       | Purpose / Rationale                                        |
+| :------------------- | :------------------ | :--------------------------------------------------------- |
+| **VM Name**          | `pfSense-Firewall`  | Core virtual appliance                                     |
+| **OS Type**          | FreeBSD (64-bit)    | Base operating system for pfSense CE                       |
+| **Processors**       | `2 vCPU`            | Handles multi-queue packet inspection and routing          |
+| **RAM**              | `1024 MB – 2048 MB` | 1GB is baseline; 2GB recommended if running Snort/Suricata |
+| **Storage Disk**     | `20 GB VDI`         | Dynamically allocated storage for logs and states          |
+| **Network Adapters** | **8 Adapters**      | 1 WAN + 5 Internal Segments + 2 Host-Only Access Links     |
 
 #### Automated Provisioning via CLI
 
@@ -313,16 +283,16 @@ VBoxManage modifyvm "pfSense-Firewall" --nic8 hostonly --hostonlyadapter8 "vboxn
 
 During pfSense initial console setup or via **Interfaces → Assignments**:
 
-| VirtualBox Adapter | Default Driver | Assigned Interface | Rename To | Static Gateway IP | Role |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Adapter 1** | `em0` | **WAN** | `WAN` | DHCP from NAT | Internet Access |
-| **Adapter 2** | `em1` | **LAN** | `MGMT` | `10.0.0.1/24` | Management plane & WebGUI |
-| **Adapter 3** | `em2` | **OPT1** | `CYBER` | `10.10.10.1/24` | Cyber range targets / DMZ |
-| **Adapter 4** | `em3` | **OPT2** | `AD` | `10.20.20.1/24` | Active Directory domain |
-| **Adapter 5** | `em4` | **OPT3** | `SECURITY` | `10.30.30.1/24` | SIEM & centralized logs |
-| **Adapter 6** | `em5` | **OPT4** | `MALWARE` | `10.40.40.1/24` | Quarantined sandbox |
-| **Adapter 7** | `em6` | **OPT5** | `HOST_MGMT` | `192.168.56.2/24`| Trusted physical Kali link |
-| **Adapter 8** | `em7` | **OPT6** | `BLACKBOX` | `192.168.100.1/24`| Attacker simulation link |
+| VirtualBox Adapter | Default Driver | Assigned Interface | Rename To   | Static Gateway IP  | Role                       |
+| :----------------- | :------------- | :----------------- | :---------- | :----------------- | :------------------------- |
+| **Adapter 1**      | `em0`          | **WAN**            | `WAN`       | DHCP from NAT      | Internet Access            |
+| **Adapter 2**      | `em1`          | **LAN**            | `MGMT`      | `10.0.0.1/24`      | Management plane & WebGUI  |
+| **Adapter 3**      | `em2`          | **OPT1**           | `CYBER`     | `10.10.10.1/24`    | Cyber range targets / DMZ  |
+| **Adapter 4**      | `em3`          | **OPT2**           | `AD`        | `10.20.20.1/24`    | Active Directory domain    |
+| **Adapter 5**      | `em4`          | **OPT3**           | `SECURITY`  | `10.30.30.1/24`    | SIEM & centralized logs    |
+| **Adapter 6**      | `em5`          | **OPT4**           | `MALWARE`   | `10.40.40.1/24`    | Quarantined sandbox        |
+| **Adapter 7**      | `em6`          | **OPT5**           | `HOST_MGMT` | `192.168.56.2/24`  | Trusted physical Kali link |
+| **Adapter 8**      | `em7`          | **OPT6**           | `BLACKBOX`  | `192.168.100.1/24` | Attacker simulation link   |
 
 > [!CAUTION]
 > On `HOST_MGMT` and `BLACKBOX`, **do NOT specify an IPv4 Upstream Gateway**. Leaving the gateway unset marks them as local broadcast links and prevents routing conflicts with the WAN default gateway.
@@ -343,68 +313,68 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 #### 1. Management Interface (`MGMT` / `em1`)
 *Trusted administrative zone with full reach across all lab segments.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Pass** | IPv4 Any | `MGMT net` | `any` | Any | Full reach needed to administer all virtual machines |
+| Rule Order |  Action  | Protocol |   Source   | Destination | Port  | Purpose                                              |
+| :--------: | :------: | :------: | :--------: | :---------: | :---: | :--------------------------------------------------- |
+|     1      | **Pass** | IPv4 Any | `MGMT net` |    `any`    |  Any  | Full reach needed to administer all virtual machines |
 
 #### 2. Cyber Range Interface (`CYBER` / `em2`)
 *Vulnerable targets and DMZ. Outbound lateral movement is blocked.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Pass** (Optional)| IPv4 Any | `CYBER net` | `WAN` | Any | Target software updates/patching (enable when needed) |
-| 2 | **Pass** | UDP | `CYBER net` | `10.30.30.10` | 514 | Syslog forwarding to Wazuh / SIEM |
-| 3 | **Pass** | TCP | `CYBER net` | `10.30.30.10` | 1514, 1515 | Wazuh agent registration & events |
-| 4 | **Pass** | TCP | `CYBER net` | `10.30.30.10` | 5044 | Beats log shipping (Winlogbeat / Filebeat) |
-| 5 | **Pass** (Disabled)| IPv4 Any | `CYBER net` | `AD net` | Any | **Lateral pivot rule** — enable only during pivoting drills |
-| 6 | **Block** | IPv4 Any | `CYBER net` | `MGMT net` | Any | Isolate management plane from compromised targets |
-| 7 | **Block** | IPv4 Any | `CYBER net` | `MALWARE net`| Any | Prevent targets from interacting with detonating malware |
-| 8 | **Block** | IPv4 Any | `CYBER net` | `SECURITY net`| Any | Catch-all block for remaining SIEM ports |
+| Rule Order |       Action        | Protocol |   Source    |  Destination   |    Port    | Purpose                                                     |
+| :--------: | :-----------------: | :------: | :---------: | :------------: | :--------: | :---------------------------------------------------------- |
+|     1      | **Pass** (Optional) | IPv4 Any | `CYBER net` |     `WAN`      |    Any     | Target software updates/patching (enable when needed)       |
+|     2      |      **Pass**       |   UDP    | `CYBER net` | `10.30.30.10`  |    514     | Syslog forwarding to Wazuh / SIEM                           |
+|     3      |      **Pass**       |   TCP    | `CYBER net` | `10.30.30.10`  | 1514, 1515 | Wazuh agent registration & events                           |
+|     4      |      **Pass**       |   TCP    | `CYBER net` | `10.30.30.10`  |    5044    | Beats log shipping (Winlogbeat / Filebeat)                  |
+|     5      | **Pass** (Disabled) | IPv4 Any | `CYBER net` |    `AD net`    |    Any     | **Lateral pivot rule** — enable only during pivoting drills |
+|     6      |      **Block**      | IPv4 Any | `CYBER net` |   `MGMT net`   |    Any     | Isolate management plane from compromised targets           |
+|     7      |      **Block**      | IPv4 Any | `CYBER net` | `MALWARE net`  |    Any     | Prevent targets from interacting with detonating malware    |
+|     8      |      **Block**      | IPv4 Any | `CYBER net` | `SECURITY net` |    Any     | Catch-all block for remaining SIEM ports                    |
 
 #### 3. Active Directory Interface (`AD` / `em3`)
 *Corporate enterprise network. Lateral egress to Cyber Range and Malware is prohibited.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Pass** | TCP/UDP | `AD net` | `10.30.30.10` | 514, 1514, 5044 | Forward Windows Event Logs & Sysmon to SIEM |
-| 2 | **Pass** (Optional)| IPv4 Any | Approved Hosts | `WAN` | 80, 443 | Microsoft updates / time synchronization |
-| 3 | **Block** | IPv4 Any | `AD net` | `CYBER net` | Any | AD cannot initiate unprompted scans into the attack range |
-| 4 | **Block** | IPv4 Any | `AD net` | `MALWARE net`| Any | Absolute isolation from malware detonation zone |
+| Rule Order |       Action        | Protocol |     Source     |  Destination  |      Port       | Purpose                                                   |
+| :--------: | :-----------------: | :------: | :------------: | :-----------: | :-------------: | :-------------------------------------------------------- |
+|     1      |      **Pass**       | TCP/UDP  |    `AD net`    | `10.30.30.10` | 514, 1514, 5044 | Forward Windows Event Logs & Sysmon to SIEM               |
+|     2      | **Pass** (Optional) | IPv4 Any | Approved Hosts |     `WAN`     |     80, 443     | Microsoft updates / time synchronization                  |
+|     3      |      **Block**      | IPv4 Any |    `AD net`    |  `CYBER net`  |       Any       | AD cannot initiate unprompted scans into the attack range |
+|     4      |      **Block**      | IPv4 Any |    `AD net`    | `MALWARE net` |       Any       | Absolute isolation from malware detonation zone           |
 
 #### 4. Security Operations Interface (`SECURITY` / `em4`)
 *Defensive monitoring and detection platform.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Pass** | IPv4 Any | `SECURITY net` | `Internal_Lab_Subnets` | Scoped Ports | Active polling, vulnerability scanning, and agent queries |
-| 2 | **Pass** | TCP/UDP | `SECURITY net` | `WAN` | 80, 443 | Threat intelligence feed updates and SIEM rulesets |
+| Rule Order |  Action  | Protocol |     Source     |      Destination       |     Port     | Purpose                                                   |
+| :--------: | :------: | :------: | :------------: | :--------------------: | :----------: | :-------------------------------------------------------- |
+|     1      | **Pass** | IPv4 Any | `SECURITY net` | `Internal_Lab_Subnets` | Scoped Ports | Active polling, vulnerability scanning, and agent queries |
+|     2      | **Pass** | TCP/UDP  | `SECURITY net` |         `WAN`          |   80, 443    | Threat intelligence feed updates and SIEM rulesets        |
 
 #### 5. Malware Sandbox Interface (`MALWARE` / `em5`)
 *Default-deny quarantine zone. Zero WAN egress, zero lateral movement.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Block** | IPv4 Any | `MALWARE net` | `WAN` | Any | **Critical: Zero Internet egress** |
-| 2 | **Block** | IPv4 Any | `MALWARE net` | `RFC1918_Networks` | Any | Prevent lateral spread into any internal lab subnet |
-| 3 | **Pass** (Narrow) | TCP/UDP | `MALWARE net` | `10.30.30.10` | Scoped Port | Optional detonation telemetry pipe to SIEM |
+| Rule Order |      Action       | Protocol |    Source     |    Destination     |    Port     | Purpose                                             |
+| :--------: | :---------------: | :------: | :-----------: | :----------------: | :---------: | :-------------------------------------------------- |
+|     1      |     **Block**     | IPv4 Any | `MALWARE net` |       `WAN`        |     Any     | **Critical: Zero Internet egress**                  |
+|     2      |     **Block**     | IPv4 Any | `MALWARE net` | `RFC1918_Networks` |     Any     | Prevent lateral spread into any internal lab subnet |
+|     3      | **Pass** (Narrow) | TCP/UDP  | `MALWARE net` |   `10.30.30.10`    | Scoped Port | Optional detonation telemetry pipe to SIEM          |
 
 #### 6. HOST_MGMT Interface (`HOST_MGMT` / `em6`)
 *Dedicated administrative channel for physical Kali.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Pass** | IPv4 Any | `192.168.56.1` | `any` | Any | Full laboratory administrative reach from Kali |
+| Rule Order |  Action  | Protocol |     Source     | Destination | Port  | Purpose                                        |
+| :--------: | :------: | :------: | :------------: | :---------: | :---: | :--------------------------------------------- |
+|     1      | **Pass** | IPv4 Any | `192.168.56.1` |    `any`    |  Any  | Full laboratory administrative reach from Kali |
 
 #### 7. BLACKBOX Interface (`BLACKBOX` / `em7`)
 *Adversary emulation link. Can reach the Cyber Range DMZ only.*
 
-| Rule Order | Action | Protocol | Source | Destination | Port | Purpose |
-| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Block** | IPv4 Any | `BLACKBOX net` | `MGMT net` | Any | External attacker cannot touch management plane |
-| 2 | **Block** | IPv4 Any | `BLACKBOX net` | `AD net` | Any | Active Directory must be reached via lateral pivot |
-| 3 | **Block** | IPv4 Any | `BLACKBOX net` | `SECURITY net`| Any | SIEM infrastructure is invisible to attacker |
-| 4 | **Block** | IPv4 Any | `BLACKBOX net` | `MALWARE net` | Any | Prevent attacker access to malware analysis sandbox |
-| 5 | **Pass** | IPv4 Any | `BLACKBOX net` | `CYBER net` | Any | **Only exposed attack surface (DMZ)** |
+| Rule Order |  Action   | Protocol |     Source     |  Destination   | Port  | Purpose                                             |
+| :--------: | :-------: | :------: | :------------: | :------------: | :---: | :-------------------------------------------------- |
+|     1      | **Block** | IPv4 Any | `BLACKBOX net` |   `MGMT net`   |  Any  | External attacker cannot touch management plane     |
+|     2      | **Block** | IPv4 Any | `BLACKBOX net` |    `AD net`    |  Any  | Active Directory must be reached via lateral pivot  |
+|     3      | **Block** | IPv4 Any | `BLACKBOX net` | `SECURITY net` |  Any  | SIEM infrastructure is invisible to attacker        |
+|     4      | **Block** | IPv4 Any | `BLACKBOX net` | `MALWARE net`  |  Any  | Prevent attacker access to malware analysis sandbox |
+|     5      | **Pass**  | IPv4 Any | `BLACKBOX net` |  `CYBER net`   |  Any  | **Only exposed attack surface (DMZ)**               |
 
 ---
 
@@ -571,13 +541,13 @@ The Cyber Range is an intentional offensive playground and the only segment expo
 
 ### 7.1 Core & Intermediate Target Workstations
 
-| Virtual Machine | Category / Vulnerabilities | IP Allocation | Source Repository |
-| :--- | :--- | :--- | :--- |
-| **Metasploitable 2** | Classic Linux services (VSFTPD, Samba, NFS) | `10.10.10.10` | SourceForge |
-| **Metasploitable 3** | Windows Server 2008 R2 (SMB, IIS, ManageEngine) | `10.10.10.20` | Rapid7 GitHub (Vagrant/Packer) |
-| **OWASP Juice Shop** | Modern Node.js web application (OWASP Top 10) | `10.10.10.30` | Docker Hub (`bkimminich/juice-shop`) |
-| **DVWA** | Damn Vulnerable Web App (PHP / MySQL) | `10.10.10.31` | GitHub (`digininja/DVWA`) |
-| **SafeLine WAF** | Reverse proxy web application firewall | `10.10.10.50` | Chaitin SafeLine |
+| Virtual Machine      | Category / Vulnerabilities                      | IP Allocation | Source Repository                    |
+| :------------------- | :---------------------------------------------- | :------------ | :----------------------------------- |
+| **Metasploitable 2** | Classic Linux services (VSFTPD, Samba, NFS)     | `10.10.10.10` | SourceForge                          |
+| **Metasploitable 3** | Windows Server 2008 R2 (SMB, IIS, ManageEngine) | `10.10.10.20` | Rapid7 GitHub (Vagrant/Packer)       |
+| **OWASP Juice Shop** | Modern Node.js web application (OWASP Top 10)   | `10.10.10.30` | Docker Hub (`bkimminich/juice-shop`) |
+| **DVWA**             | Damn Vulnerable Web App (PHP / MySQL)           | `10.10.10.31` | GitHub (`digininja/DVWA`)            |
+| **SafeLine WAF**     | Reverse proxy web application firewall          | `10.10.10.50` | Chaitin SafeLine                     |
 
 ---
 
@@ -730,10 +700,10 @@ To inspect C2 beaconing, DNS callbacks, and HTTP payload retrieval without expos
 
 ### 10.3 Analysis Tooling & Golden Image Snapshots
 
-| Tooling Platform | Operating System | Purpose | Provisioning Note |
-| :--- | :--- | :--- | :--- |
-| **FLARE VM** | Windows 10 | Static/dynamic PE analysis, x64dbg, Ghidra | Install with WAN access *before* moving to `intnet-malware` |
-| **REMnux** | Ubuntu Linux | Network protocol decoding, YARA, Volatility | Import official OVA onto `intnet-malware` |
+| Tooling Platform | Operating System | Purpose                                     | Provisioning Note                                           |
+| :--------------- | :--------------- | :------------------------------------------ | :---------------------------------------------------------- |
+| **FLARE VM**     | Windows 10       | Static/dynamic PE analysis, x64dbg, Ghidra  | Install with WAN access *before* moving to `intnet-malware` |
+| **REMnux**       | Ubuntu Linux     | Network protocol decoding, YARA, Volatility | Import official OVA onto `intnet-malware`                   |
 
 > [!CAUTION]
 > Always create a clean **Golden Baseline Snapshot** (e.g. `01 - Clean Baseline`) with the VM powered off before executing any untrusted binary. Revert to this snapshot immediately after every analysis session.
@@ -744,25 +714,25 @@ To inspect C2 beaconing, DNS callbacks, and HTTP payload retrieval without expos
 
 All components utilized in this build are free, open-source, or legitimate evaluation releases:
 
-| Component | Architecture Role | Distribution Source |
-| :--- | :--- | :--- |
-| **VirtualBox & Extension Pack** | Hypervisor Engine | [virtualbox.org](https://www.virtualbox.org/) |
-| **pfSense CE 2.7.2** | Core Firewall / Router | [pfsense.org](https://www.pfsense.org/download/) |
-| **Ubuntu Desktop 24.04 LTS** | Management Workstation | [ubuntu.com](https://ubuntu.com/download/desktop) |
-| **Metasploitable 2** | Linux Vulnerable Target | [SourceForge](https://sourceforge.net/projects/metasploitable/) |
-| **Metasploitable 3** | Windows/Linux Target | [GitHub (rapid7/metasploitable3)](https://github.com/rapid7/metasploitable3) |
-| **OWASP Juice Shop** | Web Application Target | [Docker Hub](https://hub.docker.com/r/bkimminich/juice-shop) |
-| **DVWA** | Web Application Target | [GitHub (digininja/DVWA)](https://github.com/digininja/DVWA) |
-| **SafeLine WAF** | Web Application Firewall | [waf.chaitin.com](https://waf.chaitin.com/) |
-| **Windows Server 2022 Eval** | Active Directory DC01 | [Microsoft Evaluation Center](https://www.microsoft.com/evalcenter/) |
-| **Windows 10/11 Enterprise Eval**| Domain Workstations | [Microsoft Evaluation Center](https://www.microsoft.com/evalcenter/) |
-| **Sysmon & Sysinternals** | Host Telemetry | [Microsoft Learn (Sysinternals)](https://learn.microsoft.com/sysinternals/) |
-| **BloodHound & SharpHound** | Active Directory Auditing | [GitHub (BloodHoundAD)](https://github.com/BloodHoundAD/BloodHound) |
-| **Impacket & Mimikatz** | Pentest Tooling | [GitHub](https://github.com/fortra/impacket) / [gentilkiwi](https://github.com/gentilkiwi/mimikatz) |
-| **Wazuh SIEM / Security Onion** | Defensive Monitoring | [wazuh.com](https://wazuh.com/) / [securityonion.net](https://securityonion.net/) |
-| **FLARE VM** | Malware Analysis | [GitHub (mandiant/flare-vm)](https://github.com/mandiant/flare-vm) |
-| **REMnux** | Linux Malware Analysis | [remnux.org](https://remnux.org/) |
-| **INetSim** | Simulated Internet | [inetsim.org](https://www.inetsim.org/) |
+| Component                         | Architecture Role         | Distribution Source                                                                                 |
+| :-------------------------------- | :------------------------ | :-------------------------------------------------------------------------------------------------- |
+| **VirtualBox & Extension Pack**   | Hypervisor Engine         | [virtualbox.org](https://www.virtualbox.org/)                                                       |
+| **pfSense CE 2.7.2**              | Core Firewall / Router    | [pfsense.org](https://www.pfsense.org/download/)                                                    |
+| **Ubuntu Desktop 24.04 LTS**      | Management Workstation    | [ubuntu.com](https://ubuntu.com/download/desktop)                                                   |
+| **Metasploitable 2**              | Linux Vulnerable Target   | [SourceForge](https://sourceforge.net/projects/metasploitable/)                                     |
+| **Metasploitable 3**              | Windows/Linux Target      | [GitHub (rapid7/metasploitable3)](https://github.com/rapid7/metasploitable3)                        |
+| **OWASP Juice Shop**              | Web Application Target    | [Docker Hub](https://hub.docker.com/r/bkimminich/juice-shop)                                        |
+| **DVWA**                          | Web Application Target    | [GitHub (digininja/DVWA)](https://github.com/digininja/DVWA)                                        |
+| **SafeLine WAF**                  | Web Application Firewall  | [waf.chaitin.com](https://waf.chaitin.com/)                                                         |
+| **Windows Server 2022 Eval**      | Active Directory DC01     | [Microsoft Evaluation Center](https://www.microsoft.com/evalcenter/)                                |
+| **Windows 10/11 Enterprise Eval** | Domain Workstations       | [Microsoft Evaluation Center](https://www.microsoft.com/evalcenter/)                                |
+| **Sysmon & Sysinternals**         | Host Telemetry            | [Microsoft Learn (Sysinternals)](https://learn.microsoft.com/sysinternals/)                         |
+| **BloodHound & SharpHound**       | Active Directory Auditing | [GitHub (BloodHoundAD)](https://github.com/BloodHoundAD/BloodHound)                                 |
+| **Impacket & Mimikatz**           | Pentest Tooling           | [GitHub](https://github.com/fortra/impacket) / [gentilkiwi](https://github.com/gentilkiwi/mimikatz) |
+| **Wazuh SIEM / Security Onion**   | Defensive Monitoring      | [wazuh.com](https://wazuh.com/) / [securityonion.net](https://securityonion.net/)                   |
+| **FLARE VM**                      | Malware Analysis          | [GitHub (mandiant/flare-vm)](https://github.com/mandiant/flare-vm)                                  |
+| **REMnux**                        | Linux Malware Analysis    | [remnux.org](https://remnux.org/)                                                                   |
+| **INetSim**                       | Simulated Internet        | [inetsim.org](https://www.inetsim.org/)                                                             |
 
 ---
 
@@ -772,19 +742,19 @@ All components utilized in this build are free, open-source, or legitimate evalu
 
 Execute these tests from the specified source VM to confirm firewall rule enforcement:
 
-| Source VM / Network | Destination IP | Test Command | Expected Result | Policy Rationale |
-| :--- | :--- | :--- | :--- | :--- |
-| **Management (`10.0.0.10`)** | Any Gateway | `ping 10.x.x.1` | **Reply** | Management plane has broad administrative access |
-| **Cyber Range (`10.10.10.x`)**| AD DC (`10.20.20.10`) | `nc -zv 10.20.20.10 445` | **Timeout** | Blocked unless temporary pivot rule is enabled |
-| **Cyber Range (`10.10.10.x`)**| Management (`10.0.0.10`)| `ping 10.0.0.10` | **Timeout** | Compromised range boxes cannot reach admin plane |
-| **Cyber Range (`10.10.10.x`)**| Malware (`10.40.40.x`) | `ping 10.40.40.10` | **Timeout** | Range boxes cannot reach malware sandbox |
-| **Cyber Range (`10.10.10.x`)**| SIEM (`10.30.30.10`) | `nc -zv 10.30.30.10 514` | **Connected** | Syslog telemetry forwarding is permitted |
-| **Cyber Range (`10.10.10.x`)**| SIEM (`10.30.30.10`) | `nc -zv 10.30.30.10 22` | **Timeout** | Non-telemetry ports to SIEM are blocked |
-| **AD Lab (`10.20.20.x`)** | SIEM (`10.30.30.10`) | `nc -zv 10.30.30.10 5044`| **Connected** | Beats / Winlogbeat log forwarding permitted |
-| **AD Lab (`10.20.20.x`)** | Cyber Range (`10.10.10.x`)| `ping 10.10.10.10` | **Timeout** | AD cannot reach out to cyber targets unprompted |
-| **AD Lab (`10.20.20.x`)** | Malware (`10.40.40.x`) | `ping 10.40.40.10` | **Timeout** | AD isolated from malware sandbox |
-| **Malware (`10.40.40.x`)** | Public WAN (`8.8.8.8`) | `ping 8.8.8.8` | **Timeout** | **Critical test: Zero Internet egress** |
-| **Malware (`10.40.40.x`)** | Any Lab Gateway | `ping 10.0.0.1` | **Timeout** | Lateral movement blocked |
+| Source VM / Network            | Destination IP             | Test Command              | Expected Result | Policy Rationale                                 |
+| :----------------------------- | :------------------------- | :------------------------ | :-------------- | :----------------------------------------------- |
+| **Management (`10.0.0.10`)**   | Any Gateway                | `ping 10.x.x.1`           | **Reply**       | Management plane has broad administrative access |
+| **Cyber Range (`10.10.10.x`)** | AD DC (`10.20.20.10`)      | `nc -zv 10.20.20.10 445`  | **Timeout**     | Blocked unless temporary pivot rule is enabled   |
+| **Cyber Range (`10.10.10.x`)** | Management (`10.0.0.10`)   | `ping 10.0.0.10`          | **Timeout**     | Compromised range boxes cannot reach admin plane |
+| **Cyber Range (`10.10.10.x`)** | Malware (`10.40.40.x`)     | `ping 10.40.40.10`        | **Timeout**     | Range boxes cannot reach malware sandbox         |
+| **Cyber Range (`10.10.10.x`)** | SIEM (`10.30.30.10`)       | `nc -zv 10.30.30.10 514`  | **Connected**   | Syslog telemetry forwarding is permitted         |
+| **Cyber Range (`10.10.10.x`)** | SIEM (`10.30.30.10`)       | `nc -zv 10.30.30.10 22`   | **Timeout**     | Non-telemetry ports to SIEM are blocked          |
+| **AD Lab (`10.20.20.x`)**      | SIEM (`10.30.30.10`)       | `nc -zv 10.30.30.10 5044` | **Connected**   | Beats / Winlogbeat log forwarding permitted      |
+| **AD Lab (`10.20.20.x`)**      | Cyber Range (`10.10.10.x`) | `ping 10.10.10.10`        | **Timeout**     | AD cannot reach out to cyber targets unprompted  |
+| **AD Lab (`10.20.20.x`)**      | Malware (`10.40.40.x`)     | `ping 10.40.40.10`        | **Timeout**     | AD isolated from malware sandbox                 |
+| **Malware (`10.40.40.x`)**     | Public WAN (`8.8.8.8`)     | `ping 8.8.8.8`            | **Timeout**     | **Critical test: Zero Internet egress**          |
+| **Malware (`10.40.40.x`)**     | Any Lab Gateway            | `ping 10.0.0.1`           | **Timeout**     | Lateral movement blocked                         |
 
 ---
 
