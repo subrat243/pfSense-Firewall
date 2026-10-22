@@ -40,7 +40,7 @@ Enable DHCP only on the required internal interfaces via **Services** → **DHCP
 | **SECURITY** | `10.30.30.0/24` | `10.30.30.100` | `10.30.30.200` | `10.30.30.1` |
 | **MALWARE** | `10.40.40.0/24` | Disabled | Disabled | Static only, or local fake-DNS service |
 
-Do not run DHCP on HOST_MGMT or BLACKBOX; the Kali and pfSense addresses are static. Do not advertise a public resolver to malware guests. If malware DHCP is required for an isolated exercise, serve it from a local fake-internet VM on the malware segment and provide no route to WAN.
+Do not run DHCP on HOST_MGMT; the Kali and pfSense addresses are static. Do not advertise a public resolver to malware guests. If malware DHCP is required for an isolated exercise, serve it from a local fake-internet VM on the malware segment and provide no route to WAN.
 
 ---
 
