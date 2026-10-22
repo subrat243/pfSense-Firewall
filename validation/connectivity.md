@@ -2,7 +2,7 @@
 
 ## Overview
 
-Run these tests from the stated source interface or VM. pfSense evaluates rules on ingress, and tests from Kali must use the correct HOST_MGMT, BLACKBOX, or WireGuard route. Do not use source spoofing as a substitute for testing an actual segment.
+Run these tests from the stated source interface or VM. pfSense evaluates rules on ingress, and tests from Kali must use the correct HOST_MGMT or WireGuard route. Do not use source spoofing as a substitute for testing an actual segment.
 
 ---
 
@@ -18,8 +18,6 @@ Run these tests from the stated source interface or VM. pfSense evaluates rules 
 | AD VM (`10.20.20.x`) | SIEM (`10.30.30.10`) | Test configured ingest port | Pass only to collector and configured port |
 | AD VM | CYBER or MALWARE | `ping`/service test | Block |
 | MALWARE VM (`10.40.40.x`) | WAN and other routed segments | `ping`/service/DNS test | Block; fake DNS stays local to malware segment |
-| BLACKBOX Kali (`192.168.100.10`) | CYBER (`10.10.10.0/24`) | `nmap -Pn 10.10.10.0/24` | Reachable targets only |
-| BLACKBOX Kali | MGMT/AD/SECURITY/MALWARE | `nmap -Pn <subnet>` | No reachable hosts; scan routes must use `192.168.100.1` |
 | WireGuard peer (`10.50.50.2`) | `10.0.0.1:443`, `10.0.0.10:22`, `10.30.30.10:443` | `nc -zv <host> <port>` | Pass only for configured allow rules |
 | WireGuard peer | CYBER/AD/MALWARE or unlisted service ports | `nc -zv <host> <port>` | Block |
 
@@ -27,7 +25,7 @@ Do not expect ICMP to pass over WireGuard unless a separate ICMP rule was delibe
 
 ### Access-mode checks
 
-Use [Kali Host Network Setup](../installation/kali-network-setup.md) to switch modes. In HOST_MGMT mode, verify `ip route get 10.30.30.10` uses `192.168.56.2`. In BLACKBOX mode, verify it uses `192.168.100.1` and that the HOST_MGMT profile is disconnected. Protected-range scans must travel through pfSense BLACKBOX so they test firewall denies, not Kali's default Internet route.
+Use [Kali Host Network Setup](../installation/kali-network-setup.md) to configure routing. In HOST_MGMT mode, verify `ip route get 10.30.30.10` uses `192.168.56.2`. All lab subnets should route through pfSense HOST_MGMT.
 
 For WireGuard, test from an external network and confirm `sudo wg` shows a recent handshake. Then test only the listed allowed services and at least one unlisted destination/port.
 
