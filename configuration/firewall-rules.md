@@ -28,19 +28,21 @@ pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are 
 
 Avoid a broad `MGMT net -> any` pass rule if the intent is to protect the firewall itself; the implicit deny handles anything not explicitly allowed.
 
-### 2. Cyber Range Interface Rules (`em2` / CYBER)
+### 2. Cyber Range / DMZ Interface Rules (`em2` / CYBER)
+
+The Cyber Range acts as the laboratory's **Demilitarized Zone (DMZ)**. It hosts publicly reachable workloads, web reverse proxies, and intentionally vulnerable targets. The foundational security rule of this DMZ is **zero-trust egress into internal enclaves**: DMZ systems are presumed compromised and can never initiate connections to internal protected networks.
 
 | Order | Action | Proto | Source | Destination | Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass (optional) | IPv4 * | `CYBER net` | WAN / non-RFC1918 | Required update ports | Enable only during patching or when required |
-| 2 | Pass | UDP | `CYBER net` | `SIEM_Collectors` | `514` | Syslog, if configured |
-| 3 | Pass | TCP | `CYBER net` | `SIEM_Collectors` | `1514`, `1515`, `5044` | Wazuh agent / Beats, only deployed ports |
-| 4 | Pass (disabled by default) | IPv4 * | `CYBER net` | `AD_NET` | Required AD ports | Temporary pivot exercise only |
-| 5 | Block | IPv4 * | `CYBER net` | `MGMT_NET` | * | Protect the management plane |
-| 6 | Block | IPv4 * | `CYBER net` | `MALWARE_NET` | * | Prevent access to malware analysis |
-| 7 | Block | IPv4 * | `CYBER net` | `SECURITY_NET` | * | Block everything except prior SIEM telemetry allows |
+| 1 | Pass (optional) | IPv4 * | `CYBER net` | WAN / non-RFC1918 | Required update ports | Scoped package updates / patching |
+| 2 | Pass | UDP | `CYBER net` | `SIEM_Collectors` | `514` | Syslog telemetry to SIEM |
+| 3 | Pass | TCP | `CYBER net` | `SIEM_Collectors` | `1514`, `1515`, `5044` | Wazuh agent / Beats telemetry |
+| 4 | Pass (disabled by default) | IPv4 * | `CYBER net` | `AD_NET` | Required AD ports | Controlled lateral pivot drill only |
+| 5 | Block | IPv4 * | `CYBER net` | `MGMT_NET` | * | DMZ containment: Protect the management plane |
+| 6 | Block | IPv4 * | `CYBER net` | `MALWARE_NET` | * | DMZ containment: Prevent access to malware sandbox |
+| 7 | Block | IPv4 * | `CYBER net` | `SECURITY_NET` | * | DMZ containment: Block everything except SIEM telemetry |
 
-Keep the SIEM allows above the Security block and scope destination to the actual collector address. Do not add a broad Cyber-to-AD or Cyber-to-WAN rule permanently.
+Inbound access to published DMZ services (e.g. web traffic to SafeLine WAF or CTF targets) is permitted from administrative or testing sources and managed statefully by pfSense. Keep the SIEM telemetry allows above the Security block and scope destinations strictly to the collector address. Do not permanently enable the Cyber-to-AD pivot rule.
 
 ---
 
@@ -84,23 +86,11 @@ Do not add an allow-to-non-RFC1918 rule, public DNS exception, NAT rule, or seco
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | Pass | IPv4 * | `192.168.56.1/32` | `any` | Trusted physical Kali administration access |
 
-Use a static host address of `192.168.56.1` and pfSense address `192.168.56.2/24`. This rule is intentionally powerful: disable the host's HOST_MGMT connection and remove its lab routes before switching to BLACKBOX mode. Do not place a general pass rule on BLACKBOX as well.
+Use a static host address of `192.168.56.1` and pfSense address `192.168.56.2/24`. This rule provides complete laboratory administrative access from the dedicated physical host-only interface.
 
-### 7. BLACKBOX Rules (`em7`* / attacker simulation)
+\* `em6` is an example; verify interface mapping by MAC address.
 
-| Order | Action | Proto | Source | Destination | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Block | IPv4 * | `BLACKBOX net` | `MGMT_NET` | Protect management plane |
-| 2 | Block | IPv4 * | `BLACKBOX net` | `AD_NET` | Prevent direct AD access |
-| 3 | Block | IPv4 * | `BLACKBOX net` | `SECURITY_NET` | Hide SOC infrastructure |
-| 4 | Block | IPv4 * | `BLACKBOX net` | `MALWARE_NET` | Preserve malware isolation |
-| 5 | Pass | IPv4 * | `BLACKBOX net` | `CYBER_NET` | Expose only the cyber range/DMZ |
-
-Set physical Kali to `192.168.100.10/24` and pfSense to `192.168.100.1/24`. The host-only adapter itself is not a security boundary: HOST_MGMT must be disconnected and its `10.x` routes absent during black-box testing. Rules are evaluated top-to-bottom on BLACKBOX ingress.
-
-\* `em6` and `em7` are examples; verify interface mapping by MAC address.
-
-### 8. WireGuard Remote Access Rules (`WG_REMOTE`)
+### 7. WireGuard Remote Access Rules (`WG_REMOTE`)
 
 Assign the WireGuard tunnel under **Interfaces → Assignments**, enable it, and use `10.50.50.1/24` on the pfSense tunnel. A remote peer may use `10.50.50.2/32`. On the assigned interface, add only the resources the peer requires:
 
