@@ -37,18 +37,17 @@ In this virtual lab, **pfSense Community Edition** acts as the central router, s
 
 ## 2. Multi-Interface Physical Emulation
 
-VirtualBox presents eight network adapters to pfSense: one WAN, five isolated lab networks, and two host-only access paths. WireGuard is a software interface and does not consume a VirtualBox adapter.
+VirtualBox presents seven network adapters to pfSense: one WAN, five isolated lab networks, and one host-only access path. WireGuard is a software interface and does not consume a VirtualBox adapter.
 
 | pfSense Interface | System Device | Mapped Network Segment | VirtualBox Attachment Mode |
 | :--- | :--- | :--- | :--- |
 | **WAN** | `em0` | Internet Gateway | VirtualBox NAT |
 | **LAN** | `em1` | Management (`intnet-mgmt`) | Internal Network |
-| **OPT1** | `em2` | Cyber Range (`intnet-cyber`) | Internal Network |
+| **OPT1** | `em2` | Cyber Range / DMZ (`intnet-cyber`) | Internal Network |
 | **OPT2** | `em3` | Active Directory (`intnet-ad`) | Internal Network |
 | **OPT3** | `em4` | Security Operations (`intnet-sec`) | Internal Network |
 | **OPT4** | `em5` | Malware Sandbox (`intnet-malware`)| Internal Network |
 | **OPT5** | Verify by MAC | HOST_MGMT (`vboxnet0`) | Host-only Adapter |
-| **OPT6** | Verify by MAC | BLACKBOX (`vboxnet1`) | Host-only Adapter |
 
 The `emN` examples are not guaranteed. Compare each VirtualBox MAC address with pfSense **Interfaces → Assignments** before configuring it. See the [interface assignment guide](../installation/interface-assignment.md).
 
@@ -57,7 +56,7 @@ The `emN` examples are not guaranteed. Compare each VirtualBox MAC address with 
 
 ---
 
-## 3. WAN vs. LAN Conceptual Model
+## 3. Network Enclave Architecture: WAN, DMZ, and Internal Segments
 
 ### Wide Area Network (WAN)
 * **Definition**: The untrusted external network (the Internet).
@@ -97,7 +96,6 @@ VirtualBox **Internal Networks** (`intnet-*`) create isolated virtual switches v
 ```
 
 * **HOST_MGMT** (`192.168.56.1` Kali, `192.168.56.2` pfSense) is the trusted administrative path; host routes pass through pfSense.
-* **BLACKBOX** (`192.168.100.10` Kali, `192.168.100.1` pfSense) simulates an untrusted attacker and is restricted to CYBER. Disconnect HOST_MGMT and remove its trusted routes during this mode.
 * **WireGuard** (`10.50.50.0/24`) supports remote administration with explicit destination/port rules. Never expose the pfSense GUI, SSH, or SIEM directly to WAN.
 
 ---
