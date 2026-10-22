@@ -30,7 +30,6 @@ Navigate to **Firewall** → **Aliases** → **IP** tab → **Add**:
 | `SECURITY_NET` | Network | `10.30.30.0/24` | Security Operations subnet — SIEM, Wazuh, Suricata |
 | `MALWARE_NET` | Network | `10.40.40.0/24` | Malware Sandbox — fully isolated analysis environment |
 | `HOST_MGMT_NET` | Network | `192.168.56.0/24` | Trusted physical Kali administration link |
-| `BLACKBOX_NET` | Network | `192.168.100.0/24` | Untrusted attacker simulation link |
 | `WG_REMOTE_NET` | Network | `10.50.50.0/24` | Remote WireGuard peers |
 
 After creating each alias, click **Save** then **Apply Changes** once at the end.
