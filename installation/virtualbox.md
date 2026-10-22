@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 8 adapters: one WAN, five internal lab segments, and two host-only access links.
+This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 7 adapters: one WAN, five internal lab segments, and one host-only access link.
 
 ---
 
@@ -21,7 +21,7 @@ This guide details the creation and configuration of the **pfSense Virtual Machi
 
 ## Virtual Network Adapter Configuration
 
-pfSense requires 8 virtual network interface cards (NICs). Because VirtualBox WebGUI defaults to 4 NICs per VM, use `VBoxManage` or the VM settings to attach NICs 5–8. Create and configure the host-only networks first as described in [Kali host network setup](kali-network-setup.md).
+pfSense requires 7 virtual network interface cards (NICs). Because VirtualBox WebGUI defaults to 4 NICs per VM, use `VBoxManage` or the VM settings to attach NICs 5–7. Create and configure the host-only network first as described in [Kali host network setup](kali-network-setup.md).
 
 ### Adapter Mapping Matrix
 
@@ -34,7 +34,6 @@ pfSense requires 8 virtual network interface cards (NICs). Because VirtualBox We
 | **Adapter 5** | `Internal Network` | `intnet-sec` | `em4`* | Security Operations (`10.30.30.0/24`) |
 | **Adapter 6** | `Internal Network` | `intnet-malware` | `em5` | Malware Sandbox (`10.40.40.0/24`) |
 | **Adapter 7** | `Host-only Adapter` | `vboxnet0` | `em6`* | Trusted Kali host access (`192.168.56.0/24`) |
-| **Adapter 8** | `Host-only Adapter` | `vboxnet1` | `em7`* | Black-box attacker access (`192.168.100.0/24`) |
 
 \* Device names are examples only. Match the VirtualBox adapter MAC addresses to pfSense devices before assigning roles. Internal Network names are created implicitly by attaching VMs to the same exact name; host-only networks are created explicitly in VirtualBox Network Manager.
 
@@ -87,11 +86,6 @@ VBoxManage modifyvm "pfSense" --nictype6 82545EM
 VBoxManage modifyvm "pfSense" --nic7 hostonly
 VBoxManage modifyvm "pfSense" --hostonlyadapter7 "vboxnet0"
 VBoxManage modifyvm "pfSense" --nictype7 82545EM
-
-# Adapter 8 - Black-box attacker access
-VBoxManage modifyvm "pfSense" --nic8 hostonly
-VBoxManage modifyvm "pfSense" --hostonlyadapter8 "vboxnet1"
-VBoxManage modifyvm "pfSense" --nictype8 82545EM
 ```
 
 ---
@@ -100,7 +94,7 @@ VBoxManage modifyvm "pfSense" --nictype8 82545EM
 
 ![VirtualBox Network Adapter Configuration](../screenshots/01-vbox-network-adapters.png)
 
-To verify that all 8 network adapters are attached correctly, run:
+To verify that all 7 network adapters are attached correctly, run:
 
 ```bash
 VBoxManage showvminfo "pfSense" | grep "NIC"
@@ -116,7 +110,6 @@ NIC 4: Attachment: Internal Network 'intnet-ad'
 NIC 5: Attachment: Internal Network 'intnet-sec'
 NIC 6: Attachment: Internal Network 'intnet-malware'
 NIC 7: Attachment: Host-only Interface 'vboxnet0'
-NIC 8: Attachment: Host-only Interface 'vboxnet1'
 ```
 
 Once this is complete, proceed to the **[pfSense Installation](pfsense-install.md)** and **[Interface Assignment](interface-assignment.md)**.
