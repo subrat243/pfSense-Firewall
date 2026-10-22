@@ -17,10 +17,9 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 | **Security** | `em4` | `10.30.30.0/24` | `10.30.30.0` | `255.255.255.0` | `10.30.30.1` | `10.30.30.2 - 10.30.30.254` | `10.30.30.255` | `10.30.30.100 - 10.30.30.200` |
 | **Malware** | `em5` | `10.40.40.0/24` | `10.40.40.0` | `255.255.255.0` | `10.40.40.1` | `10.40.40.2 - 10.40.40.254` | `10.40.40.255` | `10.40.40.100 - 10.40.40.200` |
 | **HOST_MGMT** | OPT5* | `192.168.56.0/24` | `192.168.56.0` | `255.255.255.0` | `192.168.56.2` | `192.168.56.1 - 192.168.56.254` | `192.168.56.255` | Static; DHCP disabled |
-| **BLACKBOX** | OPT6* | `192.168.100.0/24` | `192.168.100.0` | `255.255.255.0` | `192.168.100.1` | `192.168.100.1 - 192.168.100.254` | `192.168.100.255` | Static; DHCP disabled |
 | **WG_REMOTE** | WireGuard* | `10.50.50.0/24` | `10.50.50.0` | `255.255.255.0` | `10.50.50.1` | `10.50.50.1 - 10.50.50.254` | `10.50.50.255` | Static peer addresses |
 
-\* OPT numbers and device names vary; verify by MAC address. HOST_MGMT, BLACKBOX, and WG_REMOTE are access networks, not additional lab segments. The Kali host uses `192.168.100.10/24` on `vboxnet1`; reserve `192.168.100.1` for pfSense.
+\* OPT numbers and device names vary; verify by MAC address. HOST_MGMT and WG_REMOTE are access networks, not additional lab segments. The Kali host uses `192.168.56.1/24` on `vboxnet0` and connects to pfSense at `192.168.56.2`.
 
 ---
 
@@ -34,7 +33,7 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
   * `10.0.0.10`: Management Ubuntu VM
   * `10.0.0.50`: Out-of-band Hypervisor Management
 
-The physical Kali host is not addressed in this subnet. Trusted access uses HOST_MGMT; black-box testing uses BLACKBOX.
+The physical Kali host is not addressed in this subnet. Laboratory administrative access uses the dedicated HOST_MGMT interface (`vboxnet0`).
 
 ### 2. Cyber Range Network (`10.10.10.0/24`)
 * **Purpose**: Offense/Defense training, CTF boxes, vulnerable virtual machines (Metasploitable, VulnHub).
