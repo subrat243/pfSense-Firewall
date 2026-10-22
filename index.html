@@ -855,7 +855,7 @@
             <line x1="195" y1="406" x2="195" y2="430" stroke="#cbd5e1" stroke-width="1"/>
           </g>
 
-          <!-- Cyber Range Zone -->
+          <!-- Cyber Range / DMZ Zone -->
           <g>
             <rect x="250" y="400" width="120" height="56" rx="8" fill="#ffffff" stroke="var(--orange)" stroke-width="1.5"/>
             <text x="310" y="420" text-anchor="middle" fill="var(--orange)" font-family="Inter, sans-serif" font-size="11" font-weight="700">CYBER RANGE</text>
@@ -863,7 +863,7 @@
             <text x="310" y="448" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="8">em2</text>
 
             <rect x="240" y="478" width="65" height="32" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-            <text x="272" y="498" text-anchor="middle" fill="#475569" font-size="8" font-family="JetBrains Mono, monospace">Kali</text>
+            <text x="272" y="498" text-anchor="middle" fill="#475569" font-size="8" font-family="JetBrains Mono, monospace">WAF</text>
             <rect x="315" y="478" width="65" height="32" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
             <text x="347" y="498" text-anchor="middle" fill="#475569" font-size="8" font-family="JetBrains Mono, monospace">Targets</text>
             <line x1="272" y1="456" x2="272" y2="478" stroke="#cbd5e1" stroke-width="1"/>
@@ -986,11 +986,11 @@
             </tr>
             <tr>
               <td><code>em2</code></td>
-              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--orange)"></span> Cyber Range</span></td>
+              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--orange)"></span> Cyber Range (DMZ)</span></td>
               <td><code>10.10.10.0/24</code></td>
               <td><code>10.10.10.1</code></td>
               <td><code>.100 – .200</code></td>
-              <td>Internet ✓ | Cross-subnet selective</td>
+              <td>Deliberately vulnerable systems &amp; CTF targets</td>
             </tr>
             <tr>
               <td><code>em3</code></td>
@@ -1023,14 +1023,6 @@
               <td><code>192.168.56.2</code></td>
               <td>Disabled (Static)</td>
               <td>Trusted physical Kali administration link</td>
-            </tr>
-            <tr>
-              <td><code>em7</code></td>
-              <td><span class="zone-badge"><span class="zone-dot" style="background:var(--orange)"></span> BLACKBOX</span></td>
-              <td><code>192.168.100.0/24</code></td>
-              <td><code>192.168.100.1</code></td>
-              <td>Disabled (Static)</td>
-              <td>External attacker path (Cyber Range DMZ only)</td>
             </tr>
           </tbody>
         </table>
@@ -1065,20 +1057,22 @@
         </div>
 
         <!-- Cyber Range -->
+        <!-- Cyber Range / DMZ -->
         <div class="glass-card rule-card rule-cyber reveal">
           <div class="rule-card-header">
-            <div class="rule-card-icon" style="background:#fffbeb;color:var(--orange);border:1px solid #fde68a;">⚔</div>
+            <div class="rule-card-icon" style="background:#fffbeb;color:var(--orange);border:1px solid #fde68a;">🌐</div>
             <div>
-              <div class="rule-card-title">Cyber Range (em2)</div>
-              <div class="rule-card-sub">10.10.10.0/24</div>
+              <div class="rule-card-title">Cyber Range / DMZ (em2)</div>
+              <div class="rule-card-sub">10.10.10.0/24 — Demilitarized Zone</div>
             </div>
           </div>
           <ul class="rule-list">
-            <li><span class="rule-action pass">PASS</span> DNS → pfSense Unbound</li>
-            <li><span class="rule-action pass">PASS</span> Security logs → Wazuh/SIEM</li>
-            <li><span class="rule-action pass">PASS</span> Attack traffic → AD targets</li>
-            <li><span class="rule-action block">DENY</span> Block access to Management net</li>
-            <li><span class="rule-action pass">PASS</span> Outbound Internet for updates</li>
+            <li><span class="rule-action pass">PASS</span> Inbound traffic to Web &amp; WAF services</li>
+            <li><span class="rule-action pass">PASS</span> Security logs → Wazuh/SIEM (514/1514)</li>
+            <li><span class="rule-action block">DENY</span> ALL traffic initiated to Management net</li>
+            <li><span class="rule-action block">DENY</span> Block initiated access to Active Directory</li>
+            <li><span class="rule-action block">DENY</span> Block access to Malware sandbox</li>
+            <li><span class="rule-action pass">PASS</span> Outbound Internet for updates (scoped)</li>
           </ul>
         </div>
 
@@ -1164,13 +1158,13 @@
           <div class="roadmap-dot"></div>
           <div class="roadmap-phase">Phase 1 — Understand</div>
           <div class="roadmap-title">Conceptual Architecture &amp; Design</div>
-          <div class="roadmap-desc">Study the design rationale, network topology diagrams, and master IP allocation plan. Understand <em>why</em> pfSense acts as the central gateway with 8 adapters emulating enterprise hardware.</div>
+          <div class="roadmap-desc">Study the design rationale, network topology diagrams, and master IP allocation plan. Understand <em>why</em> pfSense acts as the central gateway with 7 adapters emulating enterprise hardware.</div>
         </div>
         <div class="roadmap-item">
           <div class="roadmap-dot"></div>
           <div class="roadmap-phase">Phase 2 — Provision</div>
           <div class="roadmap-title">Hypervisor &amp; Base OS Setup</div>
-          <div class="roadmap-desc">Create VirtualBox VMs with proper resource allocation. Install pfSense CE, assign console interfaces (em0–em7), and deploy the Ubuntu management workstation.</div>
+          <div class="roadmap-desc">Create VirtualBox VMs with proper resource allocation. Install pfSense CE, assign console interfaces (em0–em6), and deploy the Ubuntu management workstation.</div>
         </div>
         <div class="roadmap-item">
           <div class="roadmap-dot"></div>
@@ -1213,11 +1207,11 @@
 │   ├── <span class="file">ip-plan.md</span>                      <span class="comment"># IP allocation &amp; subnetting plan</span>
 │   └── <span class="file">design-rationale.md</span>             <span class="comment"># Design decisions &amp; isolation rationale</span>
 ├── <span class="folder">installation/</span>
-│   ├── <span class="file">setup-vbox-vm.sh</span>                <span class="comment"># Automated 8-adapter provisioning script</span>
+│   ├── <span class="file">setup-vbox-vm.sh</span>                <span class="comment"># Automated 7-adapter provisioning script</span>
 │   ├── <span class="file">virtualbox.md</span>                   <span class="comment"># VirtualBox VM creation guide</span>
-│   ├── <span class="file">kali-network-setup.md</span>           <span class="comment"># Physical Kali access modes (HOST_MGMT/BLACKBOX)</span>
+│   ├── <span class="file">kali-network-setup.md</span>           <span class="comment"># Physical Kali host access (HOST_MGMT)</span>
 │   ├── <span class="file">pfsense-install.md</span>              <span class="comment"># pfSense ISO installation walkthrough</span>
-│   ├── <span class="file">interface-assignment.md</span>         <span class="comment"># NIC mapping (em0–em7)</span>
+│   ├── <span class="file">interface-assignment.md</span>         <span class="comment"># NIC mapping (em0–em6)</span>
 │   └── <span class="file">dhcp.md</span>                         <span class="comment"># DHCP scope configuration</span>
 ├── <span class="folder">configuration/</span>
 │   ├── <span class="file">firewall-rules.md</span>               <span class="comment"># Firewall rules matrix &amp; policy logic</span>
