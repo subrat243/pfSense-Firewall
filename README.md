@@ -1,6 +1,6 @@
 # Home Cybersecurity Lab — Enterprise Firewall & Network Segmentation Build Documentation
 
-A production-grade, segmented VirtualBox-based home lab built on a physical Kali Linux host, providing a realistic environment for penetration testing, Active Directory security, SOC/detection engineering, and malware analysis — all strictly isolated behind an 8-interface pfSense enterprise firewall.
+A production-grade, segmented VirtualBox-based home lab built on a physical Kali Linux host, providing a realistic environment for penetration testing, Active Directory security, SOC/detection engineering, and malware analysis — all strictly isolated behind a 7-interface pfSense enterprise firewall.
 
 ---
 
@@ -18,8 +18,8 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
     - [3.2 Host Security Recommendation](#32-host-security-recommendation)
   - [4. VirtualBox Virtual Networking](#4-virtualbox-virtual-networking)
     - [4.1 Internal Networks (Lab LAN Segments)](#41-internal-networks-lab-lan-segments)
-    - [4.2 Host-Only Networks (Kali Access Links)](#42-host-only-networks-kali-access-links)
-    - [4.3 Whitelisting Host-Only Subnets](#43-whitelisting-host-only-subnets)
+    - [4.2 Host-Only Network (Kali Access Link)](#42-host-only-network-kali-access-link)
+    - [4.3 Whitelisting Host-Only Subnet](#43-whitelisting-host-only-subnet)
   - [5. pfSense — Router \& Enterprise Firewall](#5-pfsense--router--enterprise-firewall)
     - [5.1 VM Sizing \& Provisioning](#51-vm-sizing--provisioning)
       - [Automated Provisioning via CLI](#automated-provisioning-via-cli)
@@ -32,14 +32,10 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
       - [4. Security Operations Interface (`SECURITY` / `em4`)](#4-security-operations-interface-security--em4)
       - [5. Malware Sandbox Interface (`MALWARE` / `em5`)](#5-malware-sandbox-interface-malware--em5)
       - [6. HOST\_MGMT Interface (`HOST_MGMT` / `em6`)](#6-host_mgmt-interface-host_mgmt--em6)
-      - [7. BLACKBOX Interface (`BLACKBOX` / `em7`)](#7-blackbox-interface-blackbox--em7)
     - [5.5 Overall Firewall Traffic Flow Diagram](#55-overall-firewall-traffic-flow-diagram)
     - [5.6 Configuration Backup Protocol](#56-configuration-backup-protocol)
     - [5.7 HOST\_MGMT — Trusted Kali Administration Access](#57-host_mgmt--trusted-kali-administration-access)
-    - [5.8 BLACKBOX — External Attacker Simulation](#58-blackbox--external-attacker-simulation)
-    - [5.9 Kali Access Modes \& Clean Switching Scripts](#59-kali-access-modes--clean-switching-scripts)
-      - [Mode A: Full Lab Administration (`lab-trusted.sh`)](#mode-a-full-lab-administration-lab-trustedsh)
-      - [Mode B: External Black-Box Attacker (`lab-blackbox.sh`)](#mode-b-external-black-box-attacker-lab-blackboxsh)
+    - [5.8 Kali Administration Access \& Routing Script (`lab-trusted.sh`)](#58-kali-administration-access--routing-script-lab-trustedsh)
   - [6. Segment 1 — Management Enclave (`10.0.0.0/24`)](#6-segment-1--management-enclave-1000024)
   - [7. Segment 2 — Cyber Range \& DMZ (`10.10.10.0/24`)](#7-segment-2--cyber-range--dmz-101010024)
     - [7.1 Core \& Intermediate Target Workstations](#71-core--intermediate-target-workstations)
@@ -63,9 +59,8 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
     - [12.2 Service Reachability Checks](#122-service-reachability-checks)
     - [12.3 End-to-End SOC Detection Proof](#123-end-to-end-soc-detection-proof)
     - [12.4 Malware Sandbox Isolation Verification](#124-malware-sandbox-isolation-verification)
-    - [12.5 Access Mode Boundary Proofs](#125-access-mode-boundary-proofs)
-      - [Mode A (HOST\_MGMT) Verification:](#mode-a-host_mgmt-verification)
-      - [Mode B (BLACKBOX) Isolation Proof:](#mode-b-blackbox-isolation-proof)
+    - [12.5 Access Mode Verification](#125-access-mode-verification)
+      - [HOST\_MGMT Verification:](#host_mgmt-verification)
   - [13. Master Lab Build Checklist](#13-master-lab-build-checklist)
   - [14. Repository Structure \& Modular Sub-Guides](#14-repository-structure--modular-sub-guides)
   - [License \& Attribution](#license--attribution)
@@ -84,7 +79,7 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 - Oracle VM VirtualBox runs directly on top of Kali and hosts all lab VMs, including pfSense Community Edition.
 - pfSense serves as the virtual core router and policy enforcement firewall across **five internal isolated virtual networks** (`intnet-*`).
 - The physical Kali host sits **strictly outside** the internal segments. It never attaches directly to any internal network.
-- Administrative access and adversary emulation are handled via two dedicated host-only adapters (`vboxnet0` and `vboxnet1`), ensuring complete network containment.
+- Administrative access is handled via a dedicated host-only adapter (`vboxnet0`), ensuring complete network containment without bridging the host into the internal broadcast domains.
 
 ---
 
@@ -99,29 +94,27 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 | **Security**    | `em4` (OPT3) | `10.30.30.0/24`    | `10.30.30.1`    | Internal (`intnet-sec`)     | Centralized monitoring, Wazuh SIEM, log collection  |
 | **Malware**     | `em5` (OPT4) | `10.40.40.0/24`    | `10.40.40.1`    | Internal (`intnet-malware`) | Quarantined dynamic detonation; zero WAN egress     |
 | **HOST_MGMT**   | `em6` (OPT5) | `192.168.56.0/24`  | `192.168.56.2`  | Host-only (`vboxnet0`)      | Trusted physical Kali management path               |
-| **BLACKBOX**    | `em7` (OPT6) | `192.168.100.0/24` | `192.168.100.1` | Host-only (`vboxnet1`)      | External black-box penetration testing path         |
 
 > [!NOTE]
-> Device identifiers (`em0`–`em7`) represent default FreeBSD mappings when using Intel PRO/1000 MT adapters (`82540EM` or `82545EM`). Always verify exact interface-to-adapter assignments by checking MAC addresses under pfSense **Interfaces → Assignments**.
+> Device identifiers (`em0`–`em6`) represent default FreeBSD mappings when using Intel PRO/1000 MT adapters (`82540EM` or `82545EM`). Always verify exact interface-to-adapter assignments by checking MAC addresses under pfSense **Interfaces → Assignments**.
 
 ---
 
 ### 1.3 Core Hosts & Addressing
 
-| Host Name / Role             | Segment          | Assigned IP                                     | Description                                                      |
-| :--------------------------- | :--------------- | :---------------------------------------------- | :--------------------------------------------------------------- |
-| **pfSense Firewall**         | Core Gateway     | `10.0.0.1`<br>`192.168.56.2`<br>`192.168.100.1` | Central router, Unbound DNS, stateful packet filter, DHCP server |
-| **Management Ubuntu**        | Mgmt             | `10.0.0.10`                                     | GUI management workstation for out-of-band administration        |
-| **Metasploitable 2**         | Cyber Range      | `10.10.10.10`                                   | Legacy unpatched Linux target                                    |
-| **Metasploitable 3**         | Cyber Range      | `10.10.10.20`                                   | Windows Server 2008 R2 target running Sysmon telemetry           |
-| **SafeLine WAF**             | Cyber Range      | `10.10.10.50`                                   | Reverse proxy WAF protecting web applications                    |
-| **Primary DC (`DC01`)**      | Active Directory | `10.20.20.10`                                   | Windows Server 2022 Domain Controller (`lab.local`)              |
-| **Windows Clients**          | Active Directory | `10.20.20.20`, `.30`                            | Domain-joined client endpoints                                   |
-| **Wazuh / SIEM Host**        | Security         | `10.30.30.10`                                   | Security Onion / Wazuh Manager, Indexer & Dashboard              |
-| **FLARE VM / REMnux**        | Malware          | `10.40.40.10`                                   | Reverse engineering & behavioral analysis sandboxes              |
-| **FakeNet / INetSim**        | Malware          | `10.40.40.20`                                   | Local simulated Internet service responder                       |
-| **Physical Kali (Admin)**    | HOST_MGMT        | `192.168.56.1`                                  | Mode A: Trusted administrator on `vboxnet0`                      |
-| **Physical Kali (Attacker)** | BLACKBOX         | `192.168.100.10`                                | Mode B: Simulated external adversary on `vboxnet1`               |
+| Host Name / Role             | Segment          | Assigned IP                    | Description                                                      |
+| :--------------------------- | :--------------- | :----------------------------- | :--------------------------------------------------------------- |
+| **pfSense Firewall**         | Core Gateway     | `10.0.0.1`<br>`192.168.56.2`   | Central router, Unbound DNS, stateful packet filter, DHCP server |
+| **Management Ubuntu**        | Mgmt             | `10.0.0.10`                    | GUI management workstation for out-of-band administration        |
+| **Metasploitable 2**         | Cyber Range      | `10.10.10.10`                  | Legacy unpatched Linux target                                    |
+| **Metasploitable 3**         | Cyber Range      | `10.10.10.20`                  | Windows Server 2008 R2 target running Sysmon telemetry           |
+| **SafeLine WAF**             | Cyber Range      | `10.10.10.50`                  | Reverse proxy WAF protecting web applications                    |
+| **Primary DC (`DC01`)**      | Active Directory | `10.20.20.10`                  | Windows Server 2022 Domain Controller (`lab.local`)              |
+| **Windows Clients**          | Active Directory | `10.20.20.20`, `.30`           | Domain-joined client endpoints                                   |
+| **Wazuh / SIEM Host**        | Security         | `10.30.30.10`                  | Security Onion / Wazuh Manager, Indexer & Dashboard              |
+| **FLARE VM / REMnux**        | Malware          | `10.40.40.10`                  | Reverse engineering & behavioral analysis sandboxes              |
+| **FakeNet / INetSim**        | Malware          | `10.40.40.20`                  | Local simulated Internet service responder                       |
+| **Physical Kali Host**       | HOST_MGMT        | `192.168.56.1`                 | Trusted administrator on `vboxnet0`                              |
 
 ---
 
@@ -143,15 +136,15 @@ To avoid circular dependencies and having to touch virtual machine network setti
 ```
 
 1. **Host Setup & Whitelisting**: Install VirtualBox + Extension Pack on Kali Linux and configure `/etc/vbox/networks.conf` (Section 3 & 4.3).
-2. **VirtualBox Virtual Networks**: Create the 5 internal networks (`intnet-*`) and 2 host-only networks (`vboxnet0`, `vboxnet1`) (Section 4).
-3. **pfSense Core Provisioning**: Deploy pfSense with 8 network adapters, install the OS, assign interfaces, set static gateway IPs, and enable DHCP (Section 5.1–5.2).
-4. **Access Networks Activation**: Set up `HOST_MGMT` and `BLACKBOX` rules and verify routing from the physical Kali host (Section 5.7–5.9).
+2. **VirtualBox Virtual Networks**: Create the 5 internal networks (`intnet-*`) and 1 host-only network (`vboxnet0`) (Section 4).
+3. **pfSense Core Provisioning**: Deploy pfSense with 7 network adapters, install the OS, assign interfaces, set static gateway IPs, and enable DHCP (Section 5.1–5.2).
+4. **Access Network Activation**: Set up `HOST_MGMT` rules and verify routing from the physical Kali host (Section 5.7–5.8).
 5. **Segment 1 — Management Deployment**: Deploy the Ubuntu Management VM (`10.0.0.10`) on `intnet-mgmt` to administer pfSense via WebGUI (`https://10.0.0.1`) (Section 6).
 6. **Segment 2 — Cyber Range Targets**: Deploy Metasploitable 2/3, OWASP Juice Shop, DVWA, and SafeLine WAF on `intnet-cyber` (Section 7).
 7. **Segment 3 — Active Directory Lab**: Deploy Windows Server 2022 (`DC01`), promote `lab.local`, join client endpoints, and deploy Sysmon (Section 8).
 8. **Segment 4 — Security Monitoring**: Deploy Wazuh / Security Onion on `intnet-sec`, configure pfSense syslog forwarding, and ingest host telemetry (Section 9).
 9. **Segment 5 — Malware Analysis**: Build FLARE VM / REMnux with temporary internet access, disconnect to `intnet-malware`, enforce default-deny, and snapshot clean baselines (Section 10).
-10. **Testing & Validation**: Execute the full connectivity matrix, black-box isolation proofs, and SOC alert verification tests (Section 12).
+10. **Testing & Validation**: Execute the full connectivity matrix and SOC alert verification tests (Section 12).
 
 ---
 
@@ -200,31 +193,30 @@ In VirtualBox: **Tools → Network Manager → Internal Networks** (or dynamical
 
 ---
 
-### 4.2 Host-Only Networks (Kali Access Links)
+### 4.2 Host-Only Network (Kali Access Link)
 
-Because a physical host cannot attach directly to a VirtualBox *internal* network, two **Host-Only Networks** are created to bridge Kali to the firewall:
+Because a physical host cannot attach directly to a VirtualBox *internal* network, a **Host-Only Network** is created to bridge Kali to the firewall:
 
 | Network Name | Interface | Kali Host IP        | pfSense IP         | Role                                       |
 | :----------- | :-------- | :------------------ | :----------------- | :----------------------------------------- |
 | `vboxnet0`   | Adapter 7 | `192.168.56.1/24`   | `192.168.56.2/24`  | **HOST_MGMT**: Trusted administration path |
-| `vboxnet1`   | Adapter 8 | `192.168.100.10/24` | `192.168.100.1/24` | **BLACKBOX**: Untrusted adversary path     |
 
 > [!IMPORTANT]
-> Disable the built-in VirtualBox DHCP server on both `vboxnet0` and `vboxnet1`. Both the physical host and pfSense use static IP configurations.
+> Disable the built-in VirtualBox DHCP server on `vboxnet0`. Both the physical host and pfSense use static IP configurations.
 
 ---
 
-### 4.3 Whitelisting Host-Only Subnets
+### 4.3 Whitelisting Host-Only Subnet
 
-Modern VirtualBox releases on Linux restrict host-only subnets to `192.168.56.0/21` by default. Attempting to create `192.168.100.0/24` fails unless explicitly whitelisted in VirtualBox system configuration:
+Modern VirtualBox releases on Linux restrict host-only subnets to `192.168.56.0/21` by default. If using custom host-only ranges, they must be explicitly whitelisted in VirtualBox system configuration:
 
 ```bash
 # Whitelist host-only ranges in VirtualBox networks configuration
 sudo mkdir -p /etc/vbox
-printf '* 192.168.56.0/24\n* 192.168.100.0/24\n' | sudo tee /etc/vbox/networks.conf
+printf '* 192.168.56.0/24\n' | sudo tee /etc/vbox/networks.conf
 ```
 
-After updating the whitelist, create `vboxnet0` and `vboxnet1` in the VirtualBox GUI (**Tools → Network → Host-only Networks**) or via CLI.
+After updating the whitelist, create `vboxnet0` in the VirtualBox GUI (**Tools → Network → Host-only Networks**) or via CLI.
 
 ---
 
@@ -239,11 +231,11 @@ After updating the whitelist, create `vboxnet0` and `vboxnet1` in the VirtualBox
 | **Processors**       | `2 vCPU`            | Handles multi-queue packet inspection and routing          |
 | **RAM**              | `1024 MB – 2048 MB` | 1GB is baseline; 2GB recommended if running Snort/Suricata |
 | **Storage Disk**     | `20 GB VDI`         | Dynamically allocated storage for logs and states          |
-| **Network Adapters** | **8 Adapters**      | 1 WAN + 5 Internal Segments + 2 Host-Only Access Links     |
+| **Network Adapters** | **7 Adapters**      | 1 WAN + 5 Internal Segments + 1 Host-Only Access Link      |
 
 #### Automated Provisioning via CLI
 
-You can provision the VM and attach all 8 network adapters automatically using the repository script:
+You can provision the VM and attach all 7 network adapters automatically using the repository script:
 
 ```bash
 chmod +x installation/setup-vbox-vm.sh
@@ -272,9 +264,6 @@ VBoxManage modifyvm "pfSense-Firewall" --nic6 intnet --intnet6 "intnet-malware" 
 
 # NIC 7: HOST_MGMT (vboxnet0)
 VBoxManage modifyvm "pfSense-Firewall" --nic7 hostonly --hostonlyadapter7 "vboxnet0" --nictype7 82545EM
-
-# NIC 8: BLACKBOX (vboxnet1)
-VBoxManage modifyvm "pfSense-Firewall" --nic8 hostonly --hostonlyadapter8 "vboxnet1" --nictype8 82545EM
 ```
 
 ---
@@ -292,10 +281,9 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 | **Adapter 5**      | `em4`          | **OPT3**           | `SECURITY`  | `10.30.30.1/24`    | SIEM & centralized logs    |
 | **Adapter 6**      | `em5`          | **OPT4**           | `MALWARE`   | `10.40.40.1/24`    | Quarantined sandbox        |
 | **Adapter 7**      | `em6`          | **OPT5**           | `HOST_MGMT` | `192.168.56.2/24`  | Trusted physical Kali link |
-| **Adapter 8**      | `em7`          | **OPT6**           | `BLACKBOX`  | `192.168.100.1/24` | Attacker simulation link   |
 
 > [!CAUTION]
-> On `HOST_MGMT` and `BLACKBOX`, **do NOT specify an IPv4 Upstream Gateway**. Leaving the gateway unset marks them as local broadcast links and prevents routing conflicts with the WAN default gateway.
+> On `HOST_MGMT`, **do NOT specify an IPv4 Upstream Gateway**. Leaving the gateway unset marks it as a local broadcast link and prevents routing conflicts with the WAN default gateway.
 
 ---
 
@@ -365,17 +353,6 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 | :--------: | :------: | :------: | :------------: | :---------: | :---: | :--------------------------------------------- |
 |     1      | **Pass** | IPv4 Any | `192.168.56.1` |    `any`    |  Any  | Full laboratory administrative reach from Kali |
 
-#### 7. BLACKBOX Interface (`BLACKBOX` / `em7`)
-*Adversary emulation link. Can reach the Cyber Range DMZ only.*
-
-| Rule Order |  Action   | Protocol |     Source     |  Destination   | Port  | Purpose                                             |
-| :--------: | :-------: | :------: | :------------: | :------------: | :---: | :-------------------------------------------------- |
-|     1      | **Block** | IPv4 Any | `BLACKBOX net` |   `MGMT net`   |  Any  | External attacker cannot touch management plane     |
-|     2      | **Block** | IPv4 Any | `BLACKBOX net` |    `AD net`    |  Any  | Active Directory must be reached via lateral pivot  |
-|     3      | **Block** | IPv4 Any | `BLACKBOX net` | `SECURITY net` |  Any  | SIEM infrastructure is invisible to attacker        |
-|     4      | **Block** | IPv4 Any | `BLACKBOX net` | `MALWARE net`  |  Any  | Prevent attacker access to malware analysis sandbox |
-|     5      | **Pass**  | IPv4 Any | `BLACKBOX net` |  `CYBER net`   |  Any  | **Only exposed attack surface (DMZ)**               |
-
 ---
 
 ### 5.5 Overall Firewall Traffic Flow Diagram
@@ -386,7 +363,6 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 flowchart TD
     subgraph Kali["Physical Kali Host"]
         HM["HOST_MGMT (192.168.56.1)"]
-        BB["BLACKBOX (192.168.100.10)"]
     end
 
     subgraph FW["pfSense Enterprise Firewall"]
@@ -404,13 +380,9 @@ flowchart TD
     WAN["Internet (VirtualBox NAT)"]
 
     %% Administrative flows
-    HM ==>|Mode A: Full Admin| PFS
+    HM ==>|Full Admin Access| PFS
     MGMT ==>|Full Access| PFS
     PFS ==>|Administer| Segments
-
-    %% Blackbox attacker flow
-    BB -->|Mode B: Untrusted| PFS
-    PFS -->|Only Allowed Target| CYBER
 
     %% Inter-segment flows
     CYBER -.->|Syslog:514, Wazuh:1514, Beats:5044| SEC
@@ -424,14 +396,12 @@ flowchart TD
     %% Styling
     classDef firewall fill:#134e4a,stroke:#14b8a6,stroke-width:2px,color:#fff;
     classDef admin fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f;
-    classDef attacker fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e40af;
     classDef cyber fill:#ffedd5,stroke:#f97316,stroke-width:1.5px,color:#9a3412;
     classDef malware fill:#fee2e2,stroke:#ef4444,stroke-width:1.5px,color:#991b1b;
     classDef sec fill:#ccfbf1,stroke:#0d9488,stroke-width:1.5px,color:#115e59;
 
     class PFS firewall;
     class HM,MGMT admin;
-    class BB attacker;
     class CYBER,AD cyber;
     class MAL malware;
     class SEC sec;
@@ -459,30 +429,16 @@ HOST_MGMT provides the physical Kali workstation with an authorized administrati
 
 ---
 
-### 5.8 BLACKBOX — External Attacker Simulation
+### 5.8 Kali Administration Access & Routing Script (`lab-trusted.sh`)
 
-BLACKBOX places Kali in the role of an untrusted external adversary on the public side of the DMZ:
+Use this bash script on Kali to cleanly activate routing into the lab segments via the host-only interface:
 
-1. **VirtualBox Configuration**: Create `vboxnet1` with IPv4 `192.168.100.10`, mask `255.255.255.0`. Disable DHCP.
-2. **pfSense NIC**: Attach Adapter 8 to `vboxnet1`.
-3. **pfSense Interface**: Assign as `BLACKBOX`, IPv4 `192.168.100.1/24`, gateway **None**.
-4. **Firewall Rules**: Under **Firewall → Rules → BLACKBOX**, add explicit blocks for `MGMT`, `AD`, `SECURITY`, and `MALWARE` placed **above** the allow rule for `CYBER net`.
-
----
-
-### 5.9 Kali Access Modes & Clean Switching Scripts
-
-Only **one access mode** should be active at any given time. Use these bash scripts on Kali to switch modes cleanly without leaving stale routes or cross-network leaks:
-
-#### Mode A: Full Lab Administration (`lab-trusted.sh`)
 ```bash
 #!/usr/bin/env bash
-# lab-trusted.sh — Mode A: Full administration via HOST_MGMT
+# lab-trusted.sh — Laboratory administration via HOST_MGMT
 set -euo pipefail
 
-echo "[*] Activating Mode A: Trusted Laboratory Administration..."
-sudo ip route del 10.10.10.0/24 via 192.168.100.1 dev vboxnet1 2>/dev/null || true
-sudo ip link set vboxnet1 down
+echo "[*] Activating Trusted Laboratory Administration..."
 sudo ip link set vboxnet0 up
 sudo ip addr replace 192.168.56.1/24 dev vboxnet0
 
@@ -494,27 +450,9 @@ echo "[+] Trusted administration routing active via 192.168.56.2:"
 ip route | grep -E "10\.|192\.168\."
 ```
 
-#### Mode B: External Black-Box Attacker (`lab-blackbox.sh`)
+Make the script executable:
 ```bash
-#!/usr/bin/env bash
-# lab-blackbox.sh — Mode B: External attacker simulation
-set -euo pipefail
-
-echo "[*] Activating Mode B: Black-box Attacker Simulation..."
-sudo ip link set vboxnet0 down
-sudo ip link set vboxnet1 up
-sudo ip addr replace 192.168.100.10/24 dev vboxnet1
-
-# Add ONLY the authorized route to the Cyber Range / DMZ
-sudo ip route replace 10.10.10.0/24 via 192.168.100.1 dev vboxnet1
-
-echo "[+] Black-box routing active (Cyber Range only):"
-ip route | grep -E "10\.|192\.168\."
-```
-
-Make both scripts executable:
-```bash
-chmod +x lab-trusted.sh lab-blackbox.sh
+chmod +x lab-trusted.sh
 ```
 
 ---
@@ -537,7 +475,7 @@ The Management segment is an out-of-band administrative control plane. It contai
 
 ## 7. Segment 2 — Cyber Range & DMZ (`10.10.10.0/24`)
 
-The Cyber Range is an intentional offensive playground and the only segment exposed to external attackers connecting via BLACKBOX.
+The Cyber Range is an intentional offensive playground and isolated security testing DMZ.
 
 ### 7.1 Core & Intermediate Target Workstations
 
@@ -673,7 +611,7 @@ Attacker (Kali) ──> SafeLine WAF (10.10.10.50) ──> Backend Target (DVWA 
 ### 9.3 Hands-On Detection Engineering Scenarios
 
 - **Sigma Rule Creation**: Author custom Sigma detection rules for Kerberos ticket requests (Event ID `4769`) and convert to Wazuh rules.
-- **Port Scan Detection**: Execute Nmap recon from BLACKBOX and observe Suricata / Wazuh network intrusion alerts in real-time.
+- **Port Scan Detection**: Execute Nmap recon against Cyber Range targets from Kali via HOST_MGMT and observe Suricata / Wazuh network intrusion alerts in real-time.
 - **Privilege Escalation Tracing**: Reconstruct adversary command execution timelines by correlating Sysmon Event ID `1` (Process Creation) with firewall state drops.
 
 ---
@@ -789,9 +727,9 @@ Before executing any live malware sample:
 
 ---
 
-### 12.5 Access Mode Boundary Proofs
+### 12.5 Access Mode Verification
 
-#### Mode A (HOST_MGMT) Verification:
+#### HOST_MGMT Verification:
 ```bash
 ./lab-trusted.sh
 ping -c 3 192.168.56.2
@@ -800,28 +738,6 @@ ping -c 3 10.30.30.10
 ```
 All gateways and servers respond.
 
-#### Mode B (BLACKBOX) Isolation Proof:
-```bash
-./lab-blackbox.sh
-ping -c 3 192.168.100.1
-nmap -Pn 10.10.10.0/24    # Discovers Cyber Range targets
-```
-
-**Proof of Firewall Enforcement:**
-Temporarily add routes to the protected subnets via `192.168.100.1` and verify pfSense explicitly drops the packets:
-```bash
-for n in 10.0.0.0/24 10.20.20.0/24 10.30.30.0/24 10.40.40.0/24; do
-  sudo ip route add $n via 192.168.100.1 dev vboxnet1
-done
-
-nmap -Pn -T4 --max-retries 1 10.0.0.1 10.20.20.10 10.30.30.10 10.40.40.1
-
-for n in 10.0.0.0/24 10.20.20.0/24 10.30.30.0/24 10.40.40.0/24; do
-  sudo ip route del $n via 192.168.100.1 dev vboxnet1
-done
-```
-Every protected IP reports `filtered / no response`.
-
 ---
 
 ## 13. Master Lab Build Checklist
@@ -829,9 +745,9 @@ Every protected IP reports `filtered / no response`.
 - [x] Kali Linux physical host configured with VirtualBox and Extension Pack
 - [x] Host-only whitelist configured in `/etc/vbox/networks.conf`
 - [x] 5 Internal Networks (`intnet-*`) created in VirtualBox
-- [x] 2 Host-Only Networks (`vboxnet0`, `vboxnet1`) created with DHCP disabled
-- [x] pfSense virtual machine provisioned with **8 network adapters**
-- [x] pfSense CE installed and all 8 interfaces assigned and renamed
+- [x] Host-Only Network (`vboxnet0`) created with DHCP disabled
+- [x] pfSense virtual machine provisioned with **7 network adapters**
+- [x] pfSense CE installed and all 7 interfaces assigned and renamed
 - [x] pfSense WebGUI reachable from Management segment (`10.0.0.1`)
 - [x] Baseline pfSense configuration backed up to XML
 - [x] Stateful firewall rules configured across all interfaces
@@ -842,7 +758,7 @@ Every protected IP reports `filtered / no response`.
 - [x] Security Onion / Wazuh SIEM deployed at `10.30.30.10` and ingesting logs
 - [x] pfSense remote syslog forwarding active to `10.30.30.10:514`
 - [x] Malware sandbox configured with strict default-deny and clean snapshots taken
-- [x] `lab-trusted.sh` (Mode A) and `lab-blackbox.sh` (Mode B) scripts created and verified
+- [x] `lab-trusted.sh` script created and verified
 - [x] Full validation test suite executed and confirmed
 
 ---
@@ -864,9 +780,9 @@ For in-depth configuration procedures, refer to the dedicated guides across the 
 │   ├── topology.png                    # Rendered topology map
 │   └── topology.svg                    # Vector graphic network map
 ├── installation/
-│   ├── setup-vbox-vm.sh                # Automated VirtualBox 8-adapter provisioning script
+│   ├── setup-vbox-vm.sh                # Automated VirtualBox 7-adapter provisioning script
 │   ├── virtualbox.md                   # Step-by-step hypervisor VM creation guide
-│   ├── kali-network-setup.md           # Physical Kali HOST_MGMT & BLACKBOX setup guide
+│   ├── kali-network-setup.md           # Physical Kali HOST_MGMT setup guide
 │   ├── pfsense-install.md              # pfSense ISO installation walkthrough
 │   ├── interface-assignment.md         # NIC device mapping & interface assignment
 │   └── dhcp.md                         # DHCP server scopes & pool allocation
