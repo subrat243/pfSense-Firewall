@@ -126,6 +126,6 @@ After completing all pfSense post-wizard configuration (Steps 1–5), take a Vir
 > [!TIP]
 > If anything breaks during subsequent VM deployments, you can instantly restore to this clean baseline via **Machine** → **Restore Snapshot** — without reinstalling pfSense from scratch.
 
-Before adding or changing HOST_MGMT, BLACKBOX, or WireGuard configuration, export the pfSense XML from **Diagnostics → Backup & Restore** and take a new VirtualBox snapshot. Store exports outside the VM.
+Before adding or changing HOST_MGMT or WireGuard configuration, export the pfSense XML from **Diagnostics → Backup & Restore** and take a new VirtualBox snapshot. Store exports outside the VM.
 
 <!-- minimal update -->
