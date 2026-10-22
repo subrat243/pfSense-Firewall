@@ -19,7 +19,7 @@ pfSense defaults to **Automatic Outbound NAT rule generation**. For granular con
 | **WAN** | `10.20.20.0/24` (AD) | * | * | * | `WAN address` | * | Optional controlled patching only |
 | **WAN** | `10.30.30.0/24` (SECURITY) | * | * | * | `WAN address` | * | SIEM updates/feeds if needed |
 
-Do not create an outbound NAT rule for `10.40.40.0/24` (MALWARE). NAT is not a firewall policy, but omitting it provides defense in depth; the MALWARE interface must also have no WAN pass rule. HOST_MGMT and BLACKBOX use private access subnets and do not need Internet NAT through pfSense.
+Do not create an outbound NAT rule for `10.40.40.0/24` (MALWARE). NAT is not a firewall policy, but omitting it provides defense in depth; the MALWARE interface must also have no WAN pass rule. HOST_MGMT uses a private access subnet and does not need Internet NAT through pfSense.
 
 ---
 
