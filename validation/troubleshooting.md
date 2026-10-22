@@ -76,18 +76,7 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 
 ---
 
-### Issue 7: BLACKBOX Cannot Reach CYBER or Reaches Protected Networks
-
-* **Symptom**: CYBER targets are unreachable, or BLACKBOX scans reach MGMT/AD/SECURITY/MALWARE.
-* **Root Causes & Diagnostics**: HOST_MGMT is still active, a route uses the trusted gateway, the BLACKBOX interface mapping/address is wrong, or rule order is incorrect.
-* **Resolution**:
-  1. Disconnect HOST_MGMT and remove routes through `192.168.56.2`.
-  2. Confirm Kali uses `192.168.100.10/24`, pfSense BLACKBOX is `192.168.100.1/24`, and `ip route get 10.10.10.10` selects `192.168.100.1`.
-  3. Route probes through BLACKBOX; verify protected destinations are blocked before the CYBER allow rule. Do not interpret scans that use Kali's normal default route.
-
----
-
-### Issue 8: WireGuard Has No Recent Handshake
+### Issue 7: WireGuard Has No Recent Handshake
 
 * **Symptom**: `sudo wg` shows no recent handshake from an external network.
 * **Root Causes & Diagnostics**: A missing UDP port-forward in the home router or VirtualBox NAT, incorrect guest WAN IP, absent WAN UDP `51820` rule, or ISP CGNAT.
@@ -99,7 +88,7 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 
 ---
 
-### Issue 9: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
+### Issue 8: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
 
 ![VirtualBox Linux Kernel Panic Diagnostic Screen](../screenshots/09-troubleshooting-kernel-panic.png)
 
