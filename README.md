@@ -85,15 +85,15 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ### 1.2 Network Subnet & Interface Design
 
-| Network Name    | Interface    | Subnet Range       | pfSense IP      | Attachment Type             | Purpose & Policy                                    |
-| :-------------- | :----------- | :----------------- | :-------------- | :-------------------------- | :-------------------------------------------------- |
-| **WAN**         | `em0`        | DHCP (NAT)         | Assigned by NAT | VirtualBox NAT              | Upstream Internet access via host Wi-Fi/Ethernet    |
-| **Mgmt**        | `em1` (LAN)  | `10.0.0.0/24`      | `10.0.0.1`      | Internal (`intnet-mgmt`)    | Dedicated administrative enclave; pfSense WebGUI    |
-| **Cyber Range** | `em2` (OPT1) | `10.10.10.0/24`    | `10.10.10.1`    | Internal (`intnet-cyber`)   | Deliberately vulnerable systems; doubles as lab DMZ |
-| **AD Lab**      | `em3` (OPT2) | `10.20.20.0/24`    | `10.20.20.1`    | Internal (`intnet-ad`)      | Windows Domain Controller, forest members, Kerberos |
-| **Security**    | `em4` (OPT3) | `10.30.30.0/24`    | `10.30.30.1`    | Internal (`intnet-sec`)     | Centralized monitoring, Wazuh SIEM, log collection  |
-| **Malware**     | `em5` (OPT4) | `10.40.40.0/24`    | `10.40.40.1`    | Internal (`intnet-malware`) | Quarantined dynamic detonation; zero WAN egress     |
-| **HOST_MGMT**   | `em6` (OPT5) | `192.168.56.0/24`  | `192.168.56.2`  | Host-only (`vboxnet0`)      | Trusted physical Kali management path               |
+| Network Name    | Interface    | Subnet Range      | pfSense IP      | Attachment Type             | Purpose & Policy                                    |
+| :-------------- | :----------- | :---------------- | :-------------- | :-------------------------- | :-------------------------------------------------- |
+| **WAN**         | `em0`        | DHCP (NAT)        | Assigned by NAT | VirtualBox NAT              | Upstream Internet access via host Wi-Fi/Ethernet    |
+| **Mgmt**        | `em1` (LAN)  | `10.0.0.0/24`     | `10.0.0.1`      | Internal (`intnet-mgmt`)    | Dedicated administrative enclave; pfSense WebGUI    |
+| **Cyber Range** | `em2` (OPT1) | `10.10.10.0/24`   | `10.10.10.1`    | Internal (`intnet-cyber`)   | Deliberately vulnerable systems; doubles as lab DMZ |
+| **AD Lab**      | `em3` (OPT2) | `10.20.20.0/24`   | `10.20.20.1`    | Internal (`intnet-ad`)      | Windows Domain Controller, forest members, Kerberos |
+| **Security**    | `em4` (OPT3) | `10.30.30.0/24`   | `10.30.30.1`    | Internal (`intnet-sec`)     | Centralized monitoring, Wazuh SIEM, log collection  |
+| **Malware**     | `em5` (OPT4) | `10.40.40.0/24`   | `10.40.40.1`    | Internal (`intnet-malware`) | Quarantined dynamic detonation; zero WAN egress     |
+| **HOST_MGMT**   | `em6` (OPT5) | `192.168.56.0/24` | `192.168.56.2`  | Host-only (`vboxnet0`)      | Trusted physical Kali management path               |
 
 > [!NOTE]
 > Device identifiers (`em0`–`em6`) represent default FreeBSD mappings when using Intel PRO/1000 MT adapters (`82540EM` or `82545EM`). Always verify exact interface-to-adapter assignments by checking MAC addresses under pfSense **Interfaces → Assignments**.
@@ -102,19 +102,19 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ### 1.3 Core Hosts & Addressing
 
-| Host Name / Role             | Segment          | Assigned IP                    | Description                                                      |
-| :--------------------------- | :--------------- | :----------------------------- | :--------------------------------------------------------------- |
-| **pfSense Firewall**         | Core Gateway     | `10.0.0.1`<br>`192.168.56.2`   | Central router, Unbound DNS, stateful packet filter, DHCP server |
-| **Management Ubuntu**        | Mgmt             | `10.0.0.10`                    | GUI management workstation for out-of-band administration        |
-| **Metasploitable 2**         | Cyber Range      | `10.10.10.10`                  | Legacy unpatched Linux target                                    |
-| **Metasploitable 3**         | Cyber Range      | `10.10.10.20`                  | Windows Server 2008 R2 target running Sysmon telemetry           |
-| **SafeLine WAF**             | Cyber Range      | `10.10.10.50`                  | Reverse proxy WAF protecting web applications                    |
-| **Primary DC (`DC01`)**      | Active Directory | `10.20.20.10`                  | Windows Server 2022 Domain Controller (`lab.local`)              |
-| **Windows Clients**          | Active Directory | `10.20.20.20`, `.30`           | Domain-joined client endpoints                                   |
-| **Wazuh / SIEM Host**        | Security         | `10.30.30.10`                  | Security Onion / Wazuh Manager, Indexer & Dashboard              |
-| **FLARE VM / REMnux**        | Malware          | `10.40.40.10`                  | Reverse engineering & behavioral analysis sandboxes              |
-| **FakeNet / INetSim**        | Malware          | `10.40.40.20`                  | Local simulated Internet service responder                       |
-| **Physical Kali Host**       | HOST_MGMT        | `192.168.56.1`                 | Trusted administrator on `vboxnet0`                              |
+| Host Name / Role        | Segment          | Assigned IP                  | Description                                                      |
+| :---------------------- | :--------------- | :--------------------------- | :--------------------------------------------------------------- |
+| **pfSense Firewall**    | Core Gateway     | `10.0.0.1`<br>`192.168.56.2` | Central router, Unbound DNS, stateful packet filter, DHCP server |
+| **Management Ubuntu**   | Mgmt             | `10.0.0.10`                  | GUI management workstation for out-of-band administration        |
+| **Metasploitable 2**    | Cyber Range      | `10.10.10.10`                | Legacy unpatched Linux target                                    |
+| **Metasploitable 3**    | Cyber Range      | `10.10.10.20`                | Windows Server 2008 R2 target running Sysmon telemetry           |
+| **SafeLine WAF**        | Cyber Range      | `10.10.10.50`                | Reverse proxy WAF protecting web applications                    |
+| **Primary DC (`DC01`)** | Active Directory | `10.20.20.10`                | Windows Server 2022 Domain Controller (`lab.local`)              |
+| **Windows Clients**     | Active Directory | `10.20.20.20`, `.30`         | Domain-joined client endpoints                                   |
+| **Wazuh / SIEM Host**   | Security         | `10.30.30.10`                | Security Onion / Wazuh Manager, Indexer & Dashboard              |
+| **FLARE VM / REMnux**   | Malware          | `10.40.40.10`                | Reverse engineering & behavioral analysis sandboxes              |
+| **FakeNet / INetSim**   | Malware          | `10.40.40.20`                | Local simulated Internet service responder                       |
+| **Physical Kali Host**  | HOST_MGMT        | `192.168.56.1`               | Trusted administrator on `vboxnet0`                              |
 
 ---
 
@@ -197,9 +197,9 @@ In VirtualBox: **Tools → Network Manager → Internal Networks** (or dynamical
 
 Because a physical host cannot attach directly to a VirtualBox *internal* network, a **Host-Only Network** is created to bridge Kali to the firewall:
 
-| Network Name | Interface | Kali Host IP        | pfSense IP         | Role                                       |
-| :----------- | :-------- | :------------------ | :----------------- | :----------------------------------------- |
-| `vboxnet0`   | Adapter 7 | `192.168.56.1/24`   | `192.168.56.2/24`  | **HOST_MGMT**: Trusted administration path |
+| Network Name | Interface | Kali Host IP      | pfSense IP        | Role                                       |
+| :----------- | :-------- | :---------------- | :---------------- | :----------------------------------------- |
+| `vboxnet0`   | Adapter 7 | `192.168.56.1/24` | `192.168.56.2/24` | **HOST_MGMT**: Trusted administration path |
 
 > [!IMPORTANT]
 > Disable the built-in VirtualBox DHCP server on `vboxnet0`. Both the physical host and pfSense use static IP configurations.
@@ -272,15 +272,15 @@ VBoxManage modifyvm "pfSense-Firewall" --nic7 hostonly --hostonlyadapter7 "vboxn
 
 During pfSense initial console setup or via **Interfaces → Assignments**:
 
-| VirtualBox Adapter | Default Driver | Assigned Interface | Rename To   | Static Gateway IP  | Role                       |
-| :----------------- | :------------- | :----------------- | :---------- | :----------------- | :------------------------- |
-| **Adapter 1**      | `em0`          | **WAN**            | `WAN`       | DHCP from NAT      | Internet Access            |
-| **Adapter 2**      | `em1`          | **LAN**            | `MGMT`      | `10.0.0.1/24`      | Management plane & WebGUI  |
-| **Adapter 3**      | `em2`          | **OPT1**           | `CYBER`     | `10.10.10.1/24`    | Cyber range targets / DMZ  |
-| **Adapter 4**      | `em3`          | **OPT2**           | `AD`        | `10.20.20.1/24`    | Active Directory domain    |
-| **Adapter 5**      | `em4`          | **OPT3**           | `SECURITY`  | `10.30.30.1/24`    | SIEM & centralized logs    |
-| **Adapter 6**      | `em5`          | **OPT4**           | `MALWARE`   | `10.40.40.1/24`    | Quarantined sandbox        |
-| **Adapter 7**      | `em6`          | **OPT5**           | `HOST_MGMT` | `192.168.56.2/24`  | Trusted physical Kali link |
+| VirtualBox Adapter | Default Driver | Assigned Interface | Rename To   | Static Gateway IP | Role                       |
+| :----------------- | :------------- | :----------------- | :---------- | :---------------- | :------------------------- |
+| **Adapter 1**      | `em0`          | **WAN**            | `WAN`       | DHCP from NAT     | Internet Access            |
+| **Adapter 2**      | `em1`          | **LAN**            | `MGMT`      | `10.0.0.1/24`     | Management plane & WebGUI  |
+| **Adapter 3**      | `em2`          | **OPT1**           | `CYBER`     | `10.10.10.1/24`   | Cyber range targets / DMZ  |
+| **Adapter 4**      | `em3`          | **OPT2**           | `AD`        | `10.20.20.1/24`   | Active Directory domain    |
+| **Adapter 5**      | `em4`          | **OPT3**           | `SECURITY`  | `10.30.30.1/24`   | SIEM & centralized logs    |
+| **Adapter 6**      | `em5`          | **OPT4**           | `MALWARE`   | `10.40.40.1/24`   | Quarantined sandbox        |
+| **Adapter 7**      | `em6`          | **OPT5**           | `HOST_MGMT` | `192.168.56.2/24` | Trusted physical Kali link |
 
 > [!CAUTION]
 > On `HOST_MGMT`, **do NOT specify an IPv4 Upstream Gateway**. Leaving the gateway unset marks it as a local broadcast link and prevents routing conflicts with the WAN default gateway.
@@ -771,6 +771,7 @@ For in-depth configuration procedures, refer to the dedicated guides across the 
 .
 ├── README.md                           # Master Build Documentation & Architecture Overview
 ├── assets/
+│   ├── screenshots/                    # WebGUI and console setup screenshots
 │   ├── home_lab_network_architecture.png # Complete network architecture topology diagram
 │   └── firewall_traffic_flow.png       # Detailed firewall traffic flow diagram
 ├── architecture/
@@ -794,7 +795,6 @@ For in-depth configuration procedures, refer to the dedicated guides across the 
 ├── validation/
 │   ├── connectivity.md                 # Inter-VLAN validation test suite
 │   └── troubleshooting.md              # Diagnostics for common setup and routing issues
-├── screenshots/                        # WebGUI and console setup screenshots
 └── backup/
     └── config.xml                      # Production-ready pfSense reference configuration
 ```
