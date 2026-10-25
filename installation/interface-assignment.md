@@ -4,6 +4,15 @@
 
 pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel PRO/1000 MT Desktop NICs, interfaces are commonly identified as `em0` through `em6`, but device names can vary. Treat adapter order as a starting point only: match VirtualBox adapter MAC addresses to pfSense device names before assigning roles.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [VirtualBox provisioning](virtualbox.md)
+- [pfSense installation](pfsense-install.md)
+- [Kali host network setup](kali-network-setup.md)
+- [Architecture rationale](../architecture/design-rationale.md)
+- [Firewall rule matrix](../configuration/firewall-rules.md)
+
 ---
 
 ## Console Interface Assignment Walkthrough
@@ -40,11 +49,11 @@ pfSense relies on FreeBSD network interface drivers. On VirtualBox using Intel P
      * OPT5 -> HOST_MGMT adapter (`vboxnet0`; verify device by MAC)
    * Type `y` and press `Enter` to commit changes.
 
-![pfSense Console Interface Assignment Output](../screenshots/07-pfsense-interface-assignment.png)
+![pfSense Console Interface Assignment Output](../assets/screenshots/07-pfsense-interface-assignment.png)
 
 Once settings finish reloading, the main console menu displays the newly assigned interfaces:
 
-![pfSense Console Menu with Assigned Interfaces](../screenshots/08-pfsense-console-menu-assigned.png)
+![pfSense Console Menu with Assigned Interfaces](../assets/screenshots/08-pfsense-console-menu-assigned.png)
 
 ## WebGUI Interface Configuration (Post-Wizard)
 
