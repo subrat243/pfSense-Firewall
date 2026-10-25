@@ -4,6 +4,15 @@
 
 Kali is the physical VirtualBox host, not a lab VM. Its host-only connection provides a dedicated, isolated management and administration path through pfSense:
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [VirtualBox provisioning](virtualbox.md)
+- [Interface assignment guide](interface-assignment.md)
+- [Firewall rule matrix](../configuration/firewall-rules.md)
+- [Connectivity validation](../validation/connectivity.md)
+- [Troubleshooting guide](../validation/troubleshooting.md)
+
 - **HOST_MGMT** (`vboxnet0`) is the trusted administration path to pfSense and the five lab segments.
 
 Do not connect Kali directly to any `intnet-*` lab network. Create the host-only network before provisioning pfSense; the setup expects `vboxnet0` to exist.
