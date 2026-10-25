@@ -4,6 +4,14 @@
 
 Run these tests from the stated source interface or VM. pfSense evaluates rules on ingress, and tests from Kali must use the correct HOST_MGMT or WireGuard route. Do not use source spoofing as a substitute for testing an actual segment.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Firewall rule matrix](../configuration/firewall-rules.md)
+- [NAT & port forwarding](../configuration/nat.md)
+- [Kali host network setup](../installation/kali-network-setup.md)
+- [Troubleshooting guide](troubleshooting.md)
+
 ---
 
 ## Inter-VLAN Connectivity Test Matrix
