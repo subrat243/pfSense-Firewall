@@ -4,6 +4,16 @@
 
 pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are stateful; once outbound traffic is allowed, return traffic is automatically permitted by the state table.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Architecture rationale](../architecture/design-rationale.md)
+- [IP allocation plan](../architecture/ip-plan.md)
+- [Interface assignment guide](../installation/interface-assignment.md)
+- [Firewall aliases](aliases.md)
+- [NAT & port forwarding](nat.md)
+- [Connectivity validation](../validation/connectivity.md)
+
 ---
 
 ## Global Firewall Principles & Strategy
