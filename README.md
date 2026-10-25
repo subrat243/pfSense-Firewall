@@ -4,6 +4,22 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
 
 ---
 
+## Related Documentation by Section
+
+- [Architecture & design rationale](architecture/design-rationale.md)
+- [IP allocation plan](architecture/ip-plan.md)
+- [VirtualBox host networking](installation/virtualbox.md)
+- [pfSense installation](installation/pfsense-install.md)
+- [Interface assignment & NIC mapping](installation/interface-assignment.md)
+- [Kali host network setup](installation/kali-network-setup.md)
+- [pfSense DHCP configuration](installation/dhcp.md)
+- [Firewall rule matrix](configuration/firewall-rules.md)
+- [Firewall aliases](configuration/aliases.md)
+- [NAT & port forwarding](configuration/nat.md)
+- [DNS resolver configuration](configuration/dns-resolver.md)
+- [Connectivity validation tests](validation/connectivity.md)
+- [Troubleshooting guide](validation/troubleshooting.md)
+
 ## Table of Contents
 
 - [Home Cybersecurity Lab — Enterprise Firewall \& Network Segmentation Build Documentation](#home-cybersecurity-lab--enterprise-firewall--network-segmentation-build-documentation)
@@ -226,7 +242,7 @@ After updating the whitelist, create `vboxnet0` in the VirtualBox GUI (**Tools �
 
 | Hardware Parameter   | Specification       | Purpose / Rationale                                        |
 | :------------------- | :------------------ | :--------------------------------------------------------- |
-| **VM Name**          | `pfSense-Firewall`  | Core virtual appliance                                     |
+| **VM Name**          | `pfSense`  | Core virtual appliance                                     |
 | **OS Type**          | FreeBSD (64-bit)    | Base operating system for pfSense CE                       |
 | **Processors**       | `2 vCPU`            | Handles multi-queue packet inspection and routing          |
 | **RAM**              | `1024 MB – 2048 MB` | 1GB is baseline; 2GB recommended if running Snort/Suricata |
@@ -239,31 +255,31 @@ You can provision the VM and attach all 7 network adapters automatically using t
 
 ```bash
 chmod +x installation/setup-vbox-vm.sh
-./installation/setup-vbox-vm.sh "pfSense-Firewall" "${HOME}/Downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso"
+./installation/setup-vbox-vm.sh "pfSense" "${HOME}/Downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso"
 ```
 
 Or configure manually using `VBoxManage`:
 ```bash
 # NIC 1: WAN (VirtualBox NAT)
-VBoxManage modifyvm "pfSense-Firewall" --nic1 nat --nictype1 82545EM
+VBoxManage modifyvm "pfSense" --nic1 nat --nictype1 82545EM
 
 # NIC 2: Management (intnet-mgmt)
-VBoxManage modifyvm "pfSense-Firewall" --nic2 intnet --intnet2 "intnet-mgmt" --nictype2 82545EM
+VBoxManage modifyvm "pfSense" --nic2 intnet --intnet2 "intnet-mgmt" --nictype2 82545EM
 
 # NIC 3: Cyber Range (intnet-cyber)
-VBoxManage modifyvm "pfSense-Firewall" --nic3 intnet --intnet3 "intnet-cyber" --nictype3 82545EM
+VBoxManage modifyvm "pfSense" --nic3 intnet --intnet3 "intnet-cyber" --nictype3 82545EM
 
 # NIC 4: Active Directory (intnet-ad)
-VBoxManage modifyvm "pfSense-Firewall" --nic4 intnet --intnet4 "intnet-ad" --nictype4 82545EM
+VBoxManage modifyvm "pfSense" --nic4 intnet --intnet4 "intnet-ad" --nictype4 82545EM
 
 # NIC 5: Security Operations (intnet-sec)
-VBoxManage modifyvm "pfSense-Firewall" --nic5 intnet --intnet5 "intnet-sec" --nictype5 82545EM
+VBoxManage modifyvm "pfSense" --nic5 intnet --intnet5 "intnet-sec" --nictype5 82545EM
 
 # NIC 6: Malware Analysis (intnet-malware)
-VBoxManage modifyvm "pfSense-Firewall" --nic6 intnet --intnet6 "intnet-malware" --nictype6 82545EM
+VBoxManage modifyvm "pfSense" --nic6 intnet --intnet6 "intnet-malware" --nictype6 82545EM
 
 # NIC 7: HOST_MGMT (vboxnet0)
-VBoxManage modifyvm "pfSense-Firewall" --nic7 hostonly --hostonlyadapter7 "vboxnet0" --nictype7 82545EM
+VBoxManage modifyvm "pfSense" --nic7 hostonly --hostonlyadapter7 "vboxnet0" --nictype7 82545EM
 ```
 
 ---
@@ -380,9 +396,13 @@ flowchart TD
     WAN["Internet (VirtualBox NAT)"]
 
     %% Administrative flows
-    HM ==>|Full Admin Access| PFS
-    MGMT ==>|Full Access| PFS
-    PFS ==>|Administer| Segments
+    HM -->|Full Admin Access| PFS
+    MGMT -->|Full Access| PFS
+    PFS -->|Administer| MGMT
+    PFS -->|Administer| CYBER
+    PFS -->|Administer| AD
+    PFS -->|Administer| SEC
+    PFS -->|Administer| MAL
 
     %% Inter-segment flows
     CYBER -.->|Syslog:514, Wazuh:1514, Beats:5044| SEC
