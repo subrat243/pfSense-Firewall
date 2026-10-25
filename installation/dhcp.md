@@ -4,6 +4,14 @@
 
 pfSense provides DHCP only on segments where dynamic addressing is appropriate. Keep static infrastructure addresses outside those pools and do not automatically enable DHCP on the isolated malware or host-only access networks.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [IP allocation plan](../architecture/ip-plan.md)
+- [Interface assignment guide](interface-assignment.md)
+- [Firewall aliases](../configuration/aliases.md)
+- [DNS resolver configuration](../configuration/dns-resolver.md)
+
 ---
 
 ## Global DHCP Settings
