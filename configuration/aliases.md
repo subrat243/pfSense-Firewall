@@ -4,6 +4,14 @@
 
 pfSense **Aliases** simplify complex firewall rule tables by grouping IP addresses, subnets, ports, or hostnames into reusable symbolic names. Modifying an alias automatically updates all associated firewall rules.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Firewall rule matrix](firewall-rules.md)
+- [NAT & port forwarding](nat.md)
+- [DNS resolver configuration](dns-resolver.md)
+- [IP allocation plan](../architecture/ip-plan.md)
+
 ---
 
 ## Defined Aliases Matrix
