@@ -4,6 +4,15 @@
 
 This document explains the technical rationale and architectural decisions behind the **pfSense Enterprise Lab & Cyber Range**. It details **why** specific networking paradigms, interfaces, isolation mechanisms, and management workflows were selected.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [IP allocation plan](ip-plan.md)
+- [VirtualBox host networking](../installation/virtualbox.md)
+- [Interface assignment guide](../installation/interface-assignment.md)
+- [Firewall rule matrices](../configuration/firewall-rules.md)
+- [Connectivity validation](../validation/connectivity.md)
+
 ---
 
 ## 1. Core Firewall Architecture (Why pfSense?)
