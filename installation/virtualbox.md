@@ -4,6 +4,15 @@
 
 This guide details the creation and configuration of the **pfSense Virtual Machine** on Oracle VM VirtualBox. pfSense acts as a virtual multi-interface router requiring 7 adapters: one WAN, five internal lab segments, and one host-only access link.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Architecture rationale](../architecture/design-rationale.md)
+- [IP allocation plan](../architecture/ip-plan.md)
+- [Kali host network setup](kali-network-setup.md)
+- [pfSense installation](pfsense-install.md)
+- [Interface assignment guide](interface-assignment.md)
+
 ---
 
 ## VM Hardware Allocation
@@ -92,7 +101,7 @@ VBoxManage modifyvm "pfSense" --nictype7 82545EM
 
 ## Adapter Configuration Verification
 
-![VirtualBox Network Adapter Configuration](../screenshots/01-vbox-network-adapters.png)
+![VirtualBox Network Adapter Configuration](../assets/screenshots/01-vbox-network-adapters.png)
 
 To verify that all 7 network adapters are attached correctly, run:
 
