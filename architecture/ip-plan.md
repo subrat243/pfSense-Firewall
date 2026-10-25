@@ -4,6 +4,15 @@
 
 This document outlines the IP addressing scheme, CIDR subnetting, static gateway assignments, DHCP allocation ranges, and broadcast domains for the pfSense enterprise lab environment.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Architecture rationale](design-rationale.md)
+- [VirtualBox host networking](../installation/virtualbox.md)
+- [Kali host network setup](../installation/kali-network-setup.md)
+- [DHCP scope guide](../installation/dhcp.md)
+- [Firewall aliases](../configuration/aliases.md)
+
 ---
 
 ## Master Subnet Table
