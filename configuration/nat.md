@@ -4,6 +4,14 @@
 
 Network Address Translation (NAT) maps private RFC1918 subnets (`10.0.0.0/8`) to external public/WAN IP addresses. pfSense handles both **Outbound NAT** (masquerading internal hosts for Internet access) and **Port Forwarding (Inbound NAT)**.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Firewall rule matrix](firewall-rules.md)
+- [Firewall aliases](aliases.md)
+- [DNS resolver configuration](dns-resolver.md)
+- [Kali host network setup](../installation/kali-network-setup.md)
+
 ---
 
 ## Outbound NAT Configuration
