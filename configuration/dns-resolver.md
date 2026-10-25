@@ -4,6 +4,14 @@
 
 pfSense uses **Unbound DNS Resolver** for approved lab DNS clients, custom host overrides, and optional Active Directory domain forwarding. DNS listener scope must respect segment isolation; MALWARE must never use pfSense for recursive public DNS.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Firewall rule matrix](firewall-rules.md)
+- [DHCP scope guide](../installation/dhcp.md)
+- [IP allocation plan](../architecture/ip-plan.md)
+- [Connectivity validation](../validation/connectivity.md)
+
 ---
 
 ## Core Settings
