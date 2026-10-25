@@ -4,6 +4,14 @@
 
 This guide lists common operational issues encountered during pfSense VirtualBox deployment, interface assignments, packet routing, DNS resolution, and their verified solutions.
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [Connectivity validation](connectivity.md)
+- [Interface assignment guide](../installation/interface-assignment.md)
+- [Kali host network setup](../installation/kali-network-setup.md)
+- [Firewall rule matrix](../configuration/firewall-rules.md)
+
 ---
 
 ## Troubleshooting Matrix
