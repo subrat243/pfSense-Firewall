@@ -4,6 +4,15 @@
 
 This document guides you step-by-step through installing **pfSense CE 2.7.2** from ISO image onto the provisioned eight-adapter VirtualBox virtual machine. Create both host-only networks first as described in [Kali Host Network Setup](kali-network-setup.md).
 
+## Related Documentation
+
+- [Repository overview](../README.md)
+- [VirtualBox provisioning](virtualbox.md)
+- [Interface assignment guide](interface-assignment.md)
+- [Kali host network setup](kali-network-setup.md)
+- [DHCP configuration](dhcp.md)
+- [Firewall rule matrix](../configuration/firewall-rules.md)
+
 ---
 
 ## Step-by-Step Installation Procedure
@@ -17,7 +26,7 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 
 ### Step 2: Installer Options
 
-![pfSense Installer Welcome Screen](../screenshots/02-pfsense-install-welcome.png)
+![pfSense Installer Welcome Screen](../assets/screenshots/02-pfsense-install-welcome.png)
 
 1. On the main installer menu select:
    * **`Install`**: (Install pfSense) and press `Enter`.
@@ -33,11 +42,11 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 
 1. The installer will extract base distribution tarballs (`base.txz`, `kernel.txz`).
 
-![pfSense Installer Extracting Base System Files](../screenshots/03-pfsense-install-extracting.png)
+![pfSense Installer Extracting Base System Files](../assets/screenshots/03-pfsense-install-extracting.png)
 
 2. Upon completion, select `<No>` when prompted to open a shell for manual modification.
 
-![pfSense Installation Complete Prompt](../screenshots/04-pfsense-install-complete.png)
+![pfSense Installation Complete Prompt](../assets/screenshots/04-pfsense-install-complete.png)
 
 3. Select `<Reboot>`.
 4. Immediately unmount the ISO from VirtualBox Optical Drive (`vboxmanage storageattach "pfSense-Firewall" --storagectl "IDE Controller" --port 0 --device 0 --medium none`) to prevent booting back into the installer.
@@ -48,13 +57,13 @@ This document guides you step-by-step through installing **pfSense CE 2.7.2** fr
 
 During system boot, pfSense initializes network drivers and services:
 
-![pfSense Console Boot Process](../screenshots/05-pfsense-console-booting.png)
+![pfSense Console Boot Process](../assets/screenshots/05-pfsense-console-booting.png)
 
 Once booted into pfSense OS, the text-based console menu displays:
 
 The following console output is illustrative and may show only interfaces already assigned. Adapter order and FreeBSD device names can vary; confirm the VirtualBox MAC-to-device mapping and assign all eight adapters using the [interface assignment guide](interface-assignment.md).
 
-![pfSense Console Initial Options Menu](../screenshots/06-pfsense-console-menu-initial.png)
+![pfSense Console Initial Options Menu](../assets/screenshots/06-pfsense-console-menu-initial.png)
 
 ```text
 *** Welcome to pfSense 2.7.2-RELEASE (amd64) ***
