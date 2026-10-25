@@ -375,58 +375,6 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 
 ![Firewall traffic flow between segments](assets/firewall_traffic_flow.png)
 
-```mermaid
-flowchart TD
-    subgraph Kali["Physical Kali Host"]
-        HM["HOST_MGMT (192.168.56.1)"]
-    end
-
-    subgraph FW["pfSense Enterprise Firewall"]
-        PFS["Stateful Packet Inspection Engine"]
-    end
-
-    subgraph Segments["Internal Security Zones"]
-        MGMT["Management (10.0.0.0/24)"]
-        CYBER["Cyber Range / DMZ (10.10.10.0/24)"]
-        AD["Active Directory (10.20.20.0/24)"]
-        SEC["Security / SIEM (10.30.30.0/24)"]
-        MAL["Malware Sandbox (10.40.40.0/24)"]
-    end
-
-    WAN["Internet (VirtualBox NAT)"]
-
-    %% Administrative flows
-    HM -->|Full Admin Access| PFS
-    MGMT -->|Full Access| PFS
-    PFS -->|Administer| MGMT
-    PFS -->|Administer| CYBER
-    PFS -->|Administer| AD
-    PFS -->|Administer| SEC
-    PFS -->|Administer| MAL
-
-    %% Inter-segment flows
-    CYBER -.->|Syslog:514, Wazuh:1514, Beats:5044| SEC
-    CYBER -.->|Disabled Pivot Rule| AD
-    AD -->|Event Logs & Sysmon| SEC
-    MAL -.->|Scoped Telemetry Only| SEC
-
-    %% Internet flows
-    PFS -.->|Outbound NAT (Permitted Only)| WAN
-
-    %% Styling
-    classDef firewall fill:#134e4a,stroke:#14b8a6,stroke-width:2px,color:#fff;
-    classDef admin fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f;
-    classDef cyber fill:#ffedd5,stroke:#f97316,stroke-width:1.5px,color:#9a3412;
-    classDef malware fill:#fee2e2,stroke:#ef4444,stroke-width:1.5px,color:#991b1b;
-    classDef sec fill:#ccfbf1,stroke:#0d9488,stroke-width:1.5px,color:#115e59;
-
-    class PFS firewall;
-    class HM,MGMT admin;
-    class CYBER,AD cyber;
-    class MAL malware;
-    class SEC sec;
-```
-
 ---
 
 ### 5.6 Configuration Backup Protocol
