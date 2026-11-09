@@ -60,7 +60,8 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
   - [7. Segment 2 — Cyber Range \& DMZ (`10.10.10.0/24`)](#7-segment-2--cyber-range--dmz-101010024)
     - [7.1 Core \& Intermediate Target Workstations](#71-core--intermediate-target-workstations)
     - [7.2 Sysmon Monitoring on Metasploitable 3 (Server 2008 R2)](#72-sysmon-monitoring-on-metasploitable-3-server-2008-r2)
-    - [7.3 SafeLine WAF Reverse Proxy Deployment](#73-safeline-waf-reverse-proxy-deployment)
+    - [7.3 Juice Shop \& DVWA Deployment](#73-juice-shop--dvwa-deployment)
+    - [7.4 SafeLine WAF Reverse Proxy Deployment](#74-safeline-waf-reverse-proxy-deployment)
   - [8. Segment 3 — Active Directory Lab (`10.20.20.0/24`)](#8-segment-3--active-directory-lab-102020024)
     - [8.1 Domain Controller \& Forest Setup](#81-domain-controller--forest-setup)
     - [8.2 Client Workstation Join \& Auditing Configuration](#82-client-workstation-join--auditing-configuration)
@@ -676,7 +677,62 @@ To enable end-to-end detection engineering during exploitation exercises against
 
 ---
 
-### 7.3 SafeLine WAF Reverse Proxy Deployment
+### 7.3 Juice Shop & DVWA Deployment
+
+Both web targets run in Docker on a single Ubuntu Server VM (`cyber-targets`: 1 vCPU, 2 GB RAM, 15 GB disk) attached to `intnet-cyber`. The VM carries two IP addresses so each app keeps its own address from the IP plan.
+
+| App              | IP            | Port | Image                       |
+| :--------------- | :------------ | :--: | :-------------------------- |
+| **OWASP Juice Shop** | `10.10.10.30` | 3000 | `bkimminich/juice-shop`     |
+| **DVWA**         | `10.10.10.31` | 80   | `vulnerables/web-dvwa`      |
+
+> [!NOTE]
+> The CYBER segment is offline by default. Before pulling images, temporarily enable the optional **Internet** rule on **Firewall → Rules → CYBER** (rule 2, Section 5.4) and click **Apply Changes**. Disable it again when deployment is finished. The CYBER DNS rule (rule 1) must be present for name resolution to work.
+
+**1. Configure static addressing** in `/etc/netplan/50-cloud-init.yaml` (check the interface name with `ip a`; `enp0s3` is a common default):
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    enp0s3:
+      addresses: [10.10.10.30/24, 10.10.10.31/24]
+      routes:
+        - to: default
+          via: 10.10.10.1
+      nameservers:
+        addresses: [10.10.10.1]
+```
+
+```bash
+sudo netplan apply
+ping -c 2 8.8.8.8 && nslookup docker.com
+```
+
+**2. Install Docker:**
+
+```bash
+sudo apt update && sudo apt install -y docker.io
+sudo systemctl enable --now docker
+```
+
+**3. Run the applications, each bound to its own IP:**
+
+```bash
+sudo docker run -d --name juice-shop --restart unless-stopped \
+  -p 10.10.10.30:3000:3000 bkimminich/juice-shop
+
+sudo docker run -d --name dvwa --restart unless-stopped \
+  -p 10.10.10.31:80:80 vulnerables/web-dvwa
+```
+
+**4. Verify from Kali** (after running `./lab-trusted.sh`):
+- Juice Shop: `http://10.10.10.30:3000`
+- DVWA: `http://10.10.10.31/setup.php`. Click **Create / Reset Database**, then log in with `admin` / `password`. Under **DVWA Security**, set the level to Low to start.
+
+---
+
+### 7.4 SafeLine WAF Reverse Proxy Deployment
 
 Deploying SafeLine WAF in front of web targets allows practicing web application firewall bypass techniques (parameter pollution, encoding tricks, request smuggling).
 
@@ -684,32 +740,60 @@ Deploying SafeLine WAF in front of web targets allows practicing web application
 Attacker (Kali) ──> SafeLine WAF (10.10.10.50) ──> Backend Target (DVWA / Juice Shop)
 ```
 
-**Step-by-Step Installation:**
-1. Deploy a Debian/Ubuntu VM (1 vCPU, 2GB RAM, 10GB disk) attached to `intnet-cyber` at static IP `10.10.10.50`.
-2. Install Docker and Compose:
-   ```bash
-   sudo apt update && sudo apt install -y docker.io docker-compose-plugin
-   ```
-3. Deploy SafeLine via Docker Compose:
-   ```bash
-   sudo mkdir -p /data/safeline && cd /data/safeline
-   sudo wget https://waf.chaitin.com/release/latest/compose.yaml
-   sudo tee .env << 'EOF'
-   SAFELINE_DIR=/data/safeline
-   IMAGE_TAG=latest
-   MGT_PORT=9443
-   POSTGRES_PASSWORD=changeme123
-   SUBNET_PREFIX=172.22.222
-   IMAGE_PREFIX=chaitin
-   ARCH_SUFFIX=
-   EOF
-   sudo docker compose up -d
-   ```
-4. Access the administration dashboard at `https://10.10.10.50:9443` from the Management VM (`10.0.0.10`).
-5. Configure reverse proxy listeners for DVWA and Juice Shop backends.
+**Requirements** (SafeLine minimums): 1 CPU, 1 GB RAM, 5 GB disk, SSSE3 CPU support, Docker 20.10.14+ and Docker Compose 2.0.0+. This lab uses 2 vCPU, 2 GB RAM, 20 GB disk.
 
-> [!SECURITY]
-> Isolate SafeLine's management port (`9443`) from the general Cyber Range by applying a host-level firewall rule (`ufw`) permitting access from `10.0.0.10` and `192.168.56.1` only.
+**Step-by-Step Installation:**
+1. Deploy an Ubuntu Server VM attached to `intnet-cyber` at static IP `10.10.10.50/24`, gateway `10.10.10.1`, DNS `10.10.10.1` (same netplan layout as Section 7.3 with a single address). Temporarily enable the CYBER internet rule (Section 5.4).
+2. Install Docker:
+   ```bash
+   sudo apt update && sudo apt install -y docker.io
+   sudo systemctl enable --now docker
+   ```
+3. Run the official installer script:
+   ```bash
+   sudo bash -c "$(curl -fsSLk https://waf.chaitin.com/release/latest/manager.sh)" -- --en
+   ```
+4. Retrieve the generated administrator credentials:
+   ```bash
+   sudo docker exec safeline-mgt resetadmin
+   ```
+5. Access the console at `https://10.10.10.50:9443` from Kali (via HOST_MGMT) or the Management VM (`10.0.0.10`) and accept the self-signed certificate warning.
+
+> [!NOTE]
+> A manual Docker Compose install (`compose.yaml` plus a `.env` file) also works, but newer compose files read additional variables such as `RELEASE` and `REGION=-g`. A `.env` that sets only `SAFELINE_DIR`, `IMAGE_TAG`, `MGT_PORT`, `POSTGRES_PASSWORD`, `SUBNET_PREFIX`, `IMAGE_PREFIX` and `ARCH_SUFFIX` may fail to pull images. The installer script avoids this. Also, `docker-compose-plugin` is not in Ubuntu's default repositories, so use `docker.io` as above, or Docker's official repository.
+
+**Publish the web targets behind the WAF** (**Applications → Add Application**). Each application needs its own WAF listening port:
+
+| App            | Domain | WAF Port | Upstream                  |
+| :------------- | :----- | :------: | :------------------------ |
+| **DVWA**       | `*`    | `8081`   | `http://10.10.10.31:80`   |
+| **Juice Shop** | `*`    | `8082`   | `http://10.10.10.30:3000` |
+
+Browse to `http://10.10.10.50:8081` (DVWA) and `http://10.10.10.50:8082` (Juice Shop).
+
+**Test the WAF** from Kali:
+
+```bash
+curl -i "http://10.10.10.50:8081/?id=1' OR '1'='1"
+```
+
+SafeLine should block the request (typically HTTP 403) and record it under the attack logs. The same request sent directly to `10.10.10.31` is not blocked, which gives a useful with-WAF vs without-WAF comparison.
+
+**Optional: make the WAF the only way in.** Docker-published ports bypass `ufw`, so restrict the backends with the `DOCKER-USER` chain on the targets VM:
+
+```bash
+sudo iptables -I DOCKER-USER -p tcp -d 10.10.10.31 --dport 80 ! -s 10.10.10.50 -j DROP
+sudo iptables -I DOCKER-USER -p tcp -d 10.10.10.30 --dport 3000 ! -s 10.10.10.50 -j DROP
+```
+
+> [!WARNING]
+> `ufw` does **not** filter ports published by Docker. To isolate SafeLine's management port (`9443`) from the general Cyber Range, use a `DOCKER-USER` rule on the SafeLine VM, for example:
+> ```bash
+> sudo iptables -I DOCKER-USER -p tcp --dport 9443 ! -s 10.0.0.10 -j DROP
+> ```
+> Add a matching accept for `192.168.56.1` if you want Kali access, placed above the drop. Note that rules in `DOCKER-USER` are not persistent across reboots unless saved (for example with `iptables-persistent`).
+
+**Finish up:** disable the CYBER internet rule again, apply changes, and take a clean snapshot of each VM.
 
 ---
 
@@ -868,7 +952,7 @@ Execute these tests from the specified source VM to confirm firewall rule enforc
 ### 12.2 Service Reachability Checks
 
 - [ ] **pfSense WebGUI**: Browse to `https://10.0.0.1` from Management VM (`10.0.0.10`) — dashboard loads.
-- [ ] **SafeLine WAF Dashboard**: Browse to `https://10.10.10.50:9443` from Management VM — dashboard loads; confirm it does **not** load from other Cyber Range hosts (Section 7.3 isolation check).
+- [ ] **SafeLine WAF Dashboard**: Browse to `https://10.10.10.50:9443` from Management VM — dashboard loads; confirm it does **not** load from other Cyber Range hosts (Section 7.4 isolation check).
 - [ ] **SafeLine Protected Service**: Browse to the front-facing WAF port for DVWA — web app loads through the reverse proxy.
 - [ ] **Active Directory Domain Controller**: From joined Windows client, run `nltest /dsgetdc:lab.local` — returns DC01.
 - [ ] **Wazuh Dashboard**: Browse to `https://10.30.30.10` from Management VM — live event counts display.
