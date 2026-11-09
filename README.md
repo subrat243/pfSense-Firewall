@@ -39,6 +39,7 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
   - [5. pfSense — Router \& Enterprise Firewall](#5-pfsense--router--enterprise-firewall)
     - [5.1 VM Sizing \& Provisioning](#51-vm-sizing--provisioning)
       - [Automated Provisioning via CLI](#automated-provisioning-via-cli)
+      - [Adapter Limits \& Chipset Notes](#adapter-limits--chipset-notes)
     - [5.2 Interface Assignment \& Mapping Reference](#52-interface-assignment--mapping-reference)
     - [5.3 Stateful Filtering Principles \& Ingress Evaluation](#53-stateful-filtering-principles--ingress-evaluation)
     - [5.4 Firewall Rule Matrices Per Interface](#54-firewall-rule-matrices-per-interface)
@@ -52,6 +53,8 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
     - [5.6 Configuration Backup Protocol](#56-configuration-backup-protocol)
     - [5.7 HOST\_MGMT — Trusted Kali Administration Access](#57-host_mgmt--trusted-kali-administration-access)
     - [5.8 Kali Administration Access \& Routing Script (`lab-trusted.sh`)](#58-kali-administration-access--routing-script-lab-trustedsh)
+    - [5.9 Console Walkthrough: Assigning `em6` as HOST\_MGMT](#59-console-walkthrough-assigning-em6-as-host_mgmt)
+    - [5.10 Troubleshooting: HOST\_MGMT Adapter (`em6`) Not Showing in pfSense](#510-troubleshooting-host_mgmt-adapter-em6-not-showing-in-pfsense)
   - [6. Segment 1 — Management Enclave (`10.0.0.0/24`)](#6-segment-1--management-enclave-1000024)
   - [7. Segment 2 — Cyber Range \& DMZ (`10.10.10.0/24`)](#7-segment-2--cyber-range--dmz-101010024)
     - [7.1 Core \& Intermediate Target Workstations](#71-core--intermediate-target-workstations)
@@ -153,7 +156,7 @@ To avoid circular dependencies and having to touch virtual machine network setti
 
 1. **Host Setup & Whitelisting**: Install VirtualBox + Extension Pack on Kali Linux and configure `/etc/vbox/networks.conf` (Section 3 & 4.3).
 2. **VirtualBox Virtual Networks**: Create the 5 internal networks (`intnet-*`) and 1 host-only network (`vboxnet0`) (Section 4).
-3. **pfSense Core Provisioning**: Deploy pfSense with 7 network adapters, install the OS, assign interfaces, set static gateway IPs, and enable DHCP (Section 5.1–5.2).
+3. **pfSense Core Provisioning**: Deploy pfSense with 7 network adapters, install the OS, assign interfaces, set static gateway IPs, and enable DHCP (Section 5.1–5.2, 5.9).
 4. **Access Network Activation**: Set up `HOST_MGMT` rules and verify routing from the physical Kali host (Section 5.7–5.8).
 5. **Segment 1 — Management Deployment**: Deploy the Ubuntu Management VM (`10.0.0.10`) on `intnet-mgmt` to administer pfSense via WebGUI (`https://10.0.0.1`) (Section 6).
 6. **Segment 2 — Cyber Range Targets**: Deploy Metasploitable 2/3, OWASP Juice Shop, DVWA, and SafeLine WAF on `intnet-cyber` (Section 7).
@@ -220,6 +223,22 @@ Because a physical host cannot attach directly to a VirtualBox *internal* networ
 > [!IMPORTANT]
 > Disable the built-in VirtualBox DHCP server on `vboxnet0`. Both the physical host and pfSense use static IP configurations.
 
+Confirm the host-only network exists and is configured correctly before attaching it to the VM:
+
+```bash
+VBoxManage list hostonlyifs
+```
+
+Expected output includes `Name: vboxnet0`, `DHCP: Disabled`, `IPAddress: 192.168.56.1`, `NetworkMask: 255.255.255.0` and `Status: Up`. If `vboxnet0` is missing, create it:
+
+```bash
+VBoxManage hostonlyif create
+VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.56.1 --netmask 255.255.255.0
+```
+
+> [!NOTE]
+> On VirtualBox 7.x, host-only networks may also be managed as `hostonlynets`. If `list hostonlyifs` returns nothing, check `VBoxManage list hostonlynets` and use whichever shows your `192.168.56.x` network.
+
 ---
 
 ### 4.3 Whitelisting Host-Only Subnet
@@ -259,6 +278,10 @@ chmod +x installation/setup-vbox-vm.sh
 ```
 
 Or configure manually using `VBoxManage`:
+
+> [!IMPORTANT]
+> `VBoxManage modifyvm` only works while the VM is **fully powered off**. If the VM is running, saved, or aborted, you will get `VBOX_E_INVALID_OBJECT_STATE (0x80bb0007)` / "The machine is already locked for a session". See [Section 5.10](#510-troubleshooting-host_mgmt-adapter-em6-not-showing-in-pfsense).
+
 ```bash
 # NIC 1: WAN (VirtualBox NAT)
 VBoxManage modifyvm "pfSense" --nic1 nat --nictype1 82545EM
@@ -282,6 +305,20 @@ VBoxManage modifyvm "pfSense" --nic6 intnet --intnet6 "intnet-malware" --nictype
 VBoxManage modifyvm "pfSense" --nic7 hostonly --hostonlyadapter7 "vboxnet0" --nictype7 82545EM
 ```
 
+Verify the adapter configuration after provisioning:
+
+```bash
+VBoxManage showvminfo "pfSense" | grep -E "^NIC [0-9]"
+```
+
+NIC 7 should read `Attachment: Host-only Interface 'vboxnet0'`, `Cable connected: on`, and a Type of `82540EM` or `82545EM`. Note the NIC 7 MAC address, as you will use it to identify `em6` inside pfSense.
+
+#### Adapter Limits & Chipset Notes
+
+- The VirtualBox GUI exposes only **4 adapters** on the default PIIX3 chipset. Adapters 5–8 must be configured via `VBoxManage` (as above).
+- The **ICH9 chipset** exposes up to 8 adapters in the GUI (and more via CLI). Switch with the VM powered off: `VBoxManage modifyvm "pfSense" --chipset ich9`.
+- `82540EM` (Intel PRO/1000 MT Desktop) and `82545EM` (Intel PRO/1000 MT Server) both appear as `em` devices in pfSense. Mixing them is harmless; pfSense reports them as `em0`–`em6` either way.
+
 ---
 
 ### 5.2 Interface Assignment & Mapping Reference
@@ -300,6 +337,9 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 
 > [!CAUTION]
 > On `HOST_MGMT`, **do NOT specify an IPv4 Upstream Gateway**. Leaving the gateway unset marks it as a local broadcast link and prevents routing conflicts with the WAN default gateway.
+
+> [!NOTE]
+> The pfSense console main menu only lists interfaces that are **already assigned**. An unassigned NIC such as `em6` will not appear there. To confirm pfSense detects it, choose **1) Assign Interfaces** and check the "Valid interfaces are" list (Section 5.9).
 
 ---
 
@@ -369,6 +409,9 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 | :--------: | :------: | :------: | :------------: | :---------: | :---: | :--------------------------------------------- |
 |     1      | **Pass** | IPv4 Any | `192.168.56.1` |    `any`    |  Any  | Full laboratory administrative reach from Kali |
 
+> [!NOTE]
+> Newly created OPT interfaces have **no firewall rules**, so all traffic is dropped by the implicit default-deny until a pass rule is added. If `ping 192.168.56.2` fails after assignment, the missing HOST_MGMT pass rule is the first thing to check.
+
 ---
 
 ### 5.5 Overall Firewall Traffic Flow Diagram
@@ -391,8 +434,8 @@ Always create a full XML backup before making topology or firewall rule changes:
 HOST_MGMT provides the physical Kali workstation with an authorized administrative pipe into all five lab segments:
 
 1. **VirtualBox Configuration**: Tools → Network → Host-only Networks → Create `vboxnet0` with IPv4 `192.168.56.1`, mask `255.255.255.0`. Disable DHCP.
-2. **pfSense NIC**: Attach Adapter 7 to `vboxnet0`.
-3. **pfSense Interface**: Assign as `HOST_MGMT`, IPv4 `192.168.56.2/24`, gateway **None**.
+2. **pfSense NIC**: Attach Adapter 7 to `vboxnet0` (VM powered off).
+3. **pfSense Interface**: Assign `em6` as OPT5, rename to `HOST_MGMT`, IPv4 `192.168.56.2/24`, gateway **None** (Section 5.9).
 4. **Firewall Rule**: Under **Firewall → Rules → HOST_MGMT**, create a pass rule with source `192.168.56.1` to destination `any`.
 
 ---
@@ -422,6 +465,121 @@ Make the script executable:
 ```bash
 chmod +x lab-trusted.sh
 ```
+
+---
+
+### 5.9 Console Walkthrough: Assigning `em6` as HOST_MGMT
+
+Use this procedure after Adapter 7 has been attached to `vboxnet0` and the VM has been started.
+
+**Step 1 — Confirm pfSense detects the NIC**
+
+At the console menu choose **1) Assign Interfaces**. pfSense prints the detected NICs before asking any questions. You should see **seven** entries, and `em6` should show the same MAC address VirtualBox reported for NIC 7 (for example `08:00:27:32:12:90`). It will be marked `(down)` until it is configured, which is expected.
+
+```text
+Valid interfaces are:
+
+em0     08:00:27:9f:9c:ab   (up)   Intel(R) Legacy PRO/1000 MT 82540EM
+em1     08:00:27:15:aa:74   (up)   Intel(R) Legacy PRO/1000 MT 82545EM (Copper)
+...
+em6     08:00:27:32:12:90   (down) Intel(R) Legacy PRO/1000 MT 82540EM
+```
+
+**Step 2 — Answer the assignment prompts**
+
+Re-enter the existing mappings exactly so nothing is remapped:
+
+| Prompt                          | Answer                          |
+| :------------------------------ | :------------------------------ |
+| Should VLANs be set up now?     | `n`                             |
+| WAN interface                   | `em0`                           |
+| LAN interface                   | `em1`                           |
+| Optional 1                      | `em2`                           |
+| Optional 2                      | `em3`                           |
+| Optional 3                      | `em4`                           |
+| Optional 4                      | `em5`                           |
+| Optional 5                      | `em6`                           |
+| Optional 6                      | *(press Enter on a blank line)* |
+| Proceed?                        | `y`                             |
+
+After the reload, the main menu should list a new line such as `OPT5 (opt5) -> em6 -> (no IP)`. Existing interface names (MGMT, CYBER, AD, SECURITY, MALWARE) are preserved because they are stored per interface.
+
+**Step 3 — Set the static IP**
+
+Choose **2) Set interface(s) IP address**, select the new OPT5 interface, then:
+
+| Prompt                                  | Answer                               |
+| :-------------------------------------- | :----------------------------------- |
+| Configure IPv4 address via DHCP?        | `n`                                  |
+| IPv4 address                            | `192.168.56.2`                       |
+| Subnet bit count                        | `24`                                 |
+| IPv4 upstream gateway                   | *(press Enter for none)*             |
+| Configure IPv6 via DHCP6?               | `n`                                  |
+| IPv6 address                            | *(press Enter for none)*             |
+| Enable DHCP server?                     | `n`                                  |
+| Revert to HTTP as the webConfigurator?  | `n`                                  |
+
+**Step 4 — Rename and enable in the WebGUI**
+
+In **Interfaces → OPT5**: enable the interface, set the description to `HOST_MGMT`, confirm IPv4 Configuration Type is **Static IPv4**, address `192.168.56.2/24`, and Upstream Gateway **None**.
+
+**Step 5 — Add the firewall rule and test**
+
+Add the HOST_MGMT pass rule (Section 5.4, table 6), then from Kali:
+
+```bash
+./lab-trusted.sh
+ping -c 3 192.168.56.2
+```
+
+---
+
+### 5.10 Troubleshooting: HOST_MGMT Adapter (`em6`) Not Showing in pfSense
+
+| Symptom | Likely Cause | Fix |
+| :------ | :----------- | :-- |
+| Console menu shows only `em0`–`em5` | The main menu only lists **assigned** interfaces; `em6` is not assigned yet | Run **1) Assign Interfaces** and check the "Valid interfaces are" list; assign `em6` as OPT5 (Section 5.9) |
+| `em6` missing even in the "Valid interfaces" list | Adapter 7 not enabled in VirtualBox, or VM was not fully restarted after the change | Power off, verify with `VBoxManage showvminfo`, then start the VM again |
+| `VBOX_E_INVALID_OBJECT_STATE (0x80bb0007)` / "machine is already locked for a session" | `modifyvm` run while the VM is running, saved, or being unlocked | Power off the VM completely (see below), then rerun the command |
+| `modifyvm` rejects `--nic7` or `--hostonlyadapter7` | Chipset/adapter limit, or `vboxnet0` does not exist | Check `VBoxManage list hostonlyifs`; optionally switch to `--chipset ich9`; on VirtualBox 7.x also check `list hostonlynets` |
+| `em6` appears but is `(down)` | Normal before configuration | Assign the interface and set the IP (Section 5.9) |
+| `ping 192.168.56.2` fails after assignment | No pass rule on HOST_MGMT, or Kali not configured on `vboxnet0` | Add the HOST_MGMT pass rule; run `./lab-trusted.sh`; confirm Kali has `192.168.56.1/24` on `vboxnet0` |
+
+**Resolving the session lock**
+
+```bash
+# Graceful shutdown (or use pfSense console option 6, Halt system)
+VBoxManage controlvm "pfSense" acpipoweroff
+
+# If it does not stop, force it
+VBoxManage controlvm "pfSense" poweroff
+
+# Confirm pfSense is no longer running
+VBoxManage list runningvms
+
+# If the VM is in a Saved state, discard it (a saved state also locks the config)
+VBoxManage discardstate "pfSense"
+```
+
+**Verify the NIC is configured, then start the VM**
+
+```bash
+VBoxManage modifyvm "pfSense" --nic7 hostonly --hostonlyadapter7 vboxnet0 --nictype7 82540EM
+VBoxManage showvminfo "pfSense" | grep -A3 "NIC 7"
+VBoxManage startvm "pfSense"
+```
+
+A successful `modifyvm` prints nothing. The `showvminfo` line should show `Attachment: Host-only Interface 'vboxnet0'` and `Cable connected: on`.
+
+**Last resort: check from the pfSense shell**
+
+Choose **8) Shell** and run:
+
+```bash
+ifconfig -a | grep -E "^em|ether"
+```
+
+If `em6` is absent here, the guest cannot see the NIC at all, so recheck the VirtualBox adapter settings. If it is present, the problem is purely pfSense assignment, which Section 5.9 covers. Match MAC addresses against `VBoxManage showvminfo "pfSense" | grep "NIC "` to confirm which `emX` is which.
 
 ---
 
@@ -698,13 +856,22 @@ Before executing any live malware sample:
 ### 12.5 Access Mode Verification
 
 #### HOST_MGMT Verification:
+
+Before running the script, confirm pfSense and VirtualBox agree on the adapter:
+
+```bash
+VBoxManage showvminfo "pfSense" | grep -A1 "NIC 7"   # Host-only 'vboxnet0', cable connected
+```
+
+Then verify routing and reachability:
+
 ```bash
 ./lab-trusted.sh
 ping -c 3 192.168.56.2
 ping -c 3 10.0.0.1
 ping -c 3 10.30.30.10
 ```
-All gateways and servers respond.
+All gateways and servers respond. If `192.168.56.2` does not respond, see [Section 5.10](#510-troubleshooting-host_mgmt-adapter-em6-not-showing-in-pfsense).
 
 ---
 
@@ -714,11 +881,11 @@ All gateways and servers respond.
 - [x] Host-only whitelist configured in `/etc/vbox/networks.conf`
 - [x] 5 Internal Networks (`intnet-*`) created in VirtualBox
 - [x] Host-Only Network (`vboxnet0`) created with DHCP disabled
-- [x] pfSense virtual machine provisioned with **7 network adapters**
-- [x] pfSense CE installed and all 7 interfaces assigned and renamed
+- [x] pfSense virtual machine provisioned with **7 network adapters** (verified via `VBoxManage showvminfo`)
+- [x] pfSense CE installed and all 7 interfaces assigned and renamed (including `em6` → `HOST_MGMT`)
 - [x] pfSense WebGUI reachable from Management segment (`10.0.0.1`)
 - [x] Baseline pfSense configuration backed up to XML
-- [x] Stateful firewall rules configured across all interfaces
+- [x] Stateful firewall rules configured across all interfaces (including HOST_MGMT pass rule)
 - [x] Cyber Range targets deployed (Metasploitable 2/3, Juice Shop, DVWA)
 - [x] SafeLine WAF reverse proxy deployed in front of web applications
 - [x] Active Directory Domain Controller (`DC01`) promoted with `lab.local`
