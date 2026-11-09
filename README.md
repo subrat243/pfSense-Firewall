@@ -370,6 +370,16 @@ Create the alias before building any rule that references it (**Firewall → Ali
 | Type    | Network(s)                                     |
 | Entries | `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` |
 
+The SECURITY rules also use the following aliases (**Firewall → Aliases**, then **Apply Changes**):
+
+| Alias                  | Menu tab | Type       | Entries                                          | Used by                          |
+| :--------------------- | :------- | :--------- | :----------------------------------------------- | :------------------------------- |
+| `Internal_Lab_Subnets` | IP       | Network(s) | `10.10.10.0/24` (CYBER), `10.20.20.0/24` (AD)    | SECURITY rule 2                  |
+| `SIEM_Scoped_Ports`    | Ports    | Port(s)    | `22`, `80`, `443`, `445`, `3389`, `5985`         | SECURITY rule 2                  |
+| `Web_Ports`            | Ports    | Port(s)    | `80`, `443`                                      | SECURITY rule 3                  |
+
+Adjust `SIEM_Scoped_Ports` to the services you actually scan or poll.
+
 To build an **Internet** rule in the rule editor: tick **Invert match** next to Destination, choose **Address or Alias**, and enter `RFC1918_Networks`.
 
 Outbound NAT for the OPT interfaces is automatic by default, so no NAT changes are needed for internet access. Rules marked *Optional* or *Disabled* can be saved with **Disable this rule** ticked and enabled only when needed.
@@ -410,12 +420,20 @@ Outbound NAT for the OPT interfaces is automatic by default, so no NAT changes a
 |     4      |      **Block**      | IPv4 Any |    `AD net`    | `MALWARE net` |       Any       | Absolute isolation from malware detonation zone           |
 
 #### 4. Security Operations Interface (`SECURITY` / `em4`)
-*Defensive monitoring and detection platform.*
+*Defensive monitoring and detection platform. Initiates scoped connections into the Cyber Range and AD segments only; it has no path into MGMT or MALWARE.*
 
-| Rule Order |  Action  | Protocol |     Source     |      Destination       |     Port     | Purpose                                                   |
-| :--------: | :------: | :------: | :------------: | :--------------------: | :----------: | :-------------------------------------------------------- |
-|     1      | **Pass** | IPv4 Any | `SECURITY net` | `Internal_Lab_Subnets` | Scoped Ports | Active polling, vulnerability scanning, and agent queries |
-|     2      | **Pass** | TCP/UDP  | `SECURITY net` | **Internet** (`!RFC1918_Networks`) |   80, 443    | Threat intelligence feed updates and SIEM rulesets        |
+| Rule Order |  Action  | Protocol |      Source      |            Destination             |        Port         | Purpose                                                   |
+| :--------: | :------: | :------: | :--------------: | :--------------------------------: | :-----------------: | :-------------------------------------------------------- |
+|     1      | **Pass** | TCP/UDP  | `SECURITY net`   |         `SECURITY address`         |         53          | DNS queries to the pfSense resolver                       |
+|     2      | **Pass** |   TCP    | `SECURITY net`   |       `Internal_Lab_Subnets`       | `SIEM_Scoped_Ports` | Active polling, vulnerability scanning, and agent queries |
+|     3      | **Pass** | TCP/UDP  | `SECURITY net`   | **Internet** (`!RFC1918_Networks`) |    `Web_Ports`      | Threat intelligence feed updates and SIEM rulesets        |
+
+> [!NOTE]
+> Rule 3 excludes all private addresses, so the SIEM host cannot reach the pfSense resolver through it. Rule 1 provides DNS; without it, name resolution for feed updates fails.
+>
+> Rule 2 uses TCP because pfSense port aliases only apply to TCP, UDP, or TCP/UDP rules (with Protocol set to Any, no port fields appear). Add a separate ICMP rule to `Internal_Lab_Subnets` if the SIEM needs ping-based host checks.
+>
+> `Internal_Lab_Subnets` deliberately omits MGMT and MALWARE. Add them only if a specific use case requires it.
 
 #### 5. Malware Sandbox Interface (`MALWARE` / `em5`)
 *Default-deny quarantine zone. Zero WAN egress, zero lateral movement.*
