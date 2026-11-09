@@ -43,6 +43,7 @@ A production-grade, segmented VirtualBox-based home lab built on a physical Kali
     - [5.2 Interface Assignment \& Mapping Reference](#52-interface-assignment--mapping-reference)
     - [5.3 Stateful Filtering Principles \& Ingress Evaluation](#53-stateful-filtering-principles--ingress-evaluation)
     - [5.4 Firewall Rule Matrices Per Interface](#54-firewall-rule-matrices-per-interface)
+      - [Prerequisite: `RFC1918_Networks` Alias \& "Internet" Destinations](#prerequisite-rfc1918_networks-alias--internet-destinations)
       - [1. Management Interface (`MGMT` / `em1`)](#1-management-interface-mgmt--em1)
       - [2. Cyber Range Interface (`CYBER` / `em2`)](#2-cyber-range-interface-cyber--em2)
       - [3. Active Directory Interface (`AD` / `em3`)](#3-active-directory-interface-ad--em3)
@@ -354,6 +355,25 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 
 ### 5.4 Firewall Rule Matrices Per Interface
 
+#### Prerequisite: `RFC1918_Networks` Alias & "Internet" Destinations
+
+> [!WARNING]
+> In pfSense, the destination **`WAN address`** matches only the firewall's own WAN IP (e.g. `10.0.2.15`), and **`WAN subnets`** matches only the WAN's own network (e.g. `10.0.2.0/24`). Neither means "the internet". A rule using either will not allow updates or any other internet traffic.
+>
+> Where the matrices below say **Internet**, use **Invert match** with the alias `RFC1918_Networks`. This reads as "anything that is not a private address". Do **not** use destination `any` for these rules: `any` would also match other lab segments and, being first-match-wins, would bypass the block rules lower down.
+
+Create the alias before building any rule that references it (**Firewall → Aliases → IP → Add**, then **Apply Changes**):
+
+| Field   | Value                                          |
+| :------ | :--------------------------------------------- |
+| Name    | `RFC1918_Networks`                             |
+| Type    | Network(s)                                     |
+| Entries | `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` |
+
+To build an **Internet** rule in the rule editor: tick **Invert match** next to Destination, choose **Address or Alias**, and enter `RFC1918_Networks`.
+
+Outbound NAT for the OPT interfaces is automatic by default, so no NAT changes are needed for internet access. Rules marked *Optional* or *Disabled* can be saved with **Disable this rule** ticked and enabled only when needed.
+
 #### 1. Management Interface (`MGMT` / `em1`)
 *Trusted administrative zone with full reach across all lab segments.*
 
@@ -364,16 +384,20 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 #### 2. Cyber Range Interface (`CYBER` / `em2`)
 *Vulnerable targets and DMZ. Outbound lateral movement is blocked.*
 
-| Rule Order |       Action        | Protocol |   Source    |  Destination   |    Port    | Purpose                                                     |
-| :--------: | :-----------------: | :------: | :---------: | :------------: | :--------: | :---------------------------------------------------------- |
-|     1      | **Pass** (Optional) | IPv4 Any | `CYBER net` |     `WAN`      |    Any     | Target software updates/patching (enable when needed)       |
-|     2      |      **Pass**       |   UDP    | `CYBER net` | `10.30.30.10`  |    514     | Syslog forwarding to Wazuh / SIEM                           |
-|     3      |      **Pass**       |   TCP    | `CYBER net` | `10.30.30.10`  | 1514, 1515 | Wazuh agent registration & events                           |
-|     4      |      **Pass**       |   TCP    | `CYBER net` | `10.30.30.10`  |    5044    | Beats log shipping (Winlogbeat / Filebeat)                  |
-|     5      | **Pass** (Disabled) | IPv4 Any | `CYBER net` |    `AD net`    |    Any     | **Lateral pivot rule** — enable only during pivoting drills |
-|     6      |      **Block**      | IPv4 Any | `CYBER net` |   `MGMT net`   |    Any     | Isolate management plane from compromised targets           |
-|     7      |      **Block**      | IPv4 Any | `CYBER net` | `MALWARE net`  |    Any     | Prevent targets from interacting with detonating malware    |
-|     8      |      **Block**      | IPv4 Any | `CYBER net` | `SECURITY net` |    Any     | Catch-all block for remaining SIEM ports                    |
+| Rule Order |       Action        | Protocol |   Source    |      Destination      |    Port    | Purpose                                                          |
+| :--------: | :-----------------: | :------: | :---------: | :-------------------: | :--------: | :--------------------------------------------------------------- |
+|     1      |      **Pass**       | TCP/UDP  | `CYBER net` |    `CYBER address`   |     53     | DNS queries to the pfSense resolver (needed once rule 2 is on)   |
+|     2      | **Pass** (Optional) | IPv4 Any | `CYBER net` | **Internet** (`!RFC1918_Networks`) | Any | Target software updates/patching (enable when needed)          |
+|     3      |      **Pass**       |   UDP    | `CYBER net` |    `10.30.30.10`     |    514     | Syslog forwarding to Wazuh / SIEM                                |
+|     4      |      **Pass**       |   TCP    | `CYBER net` |    `10.30.30.10`     | 1514, 1515 | Wazuh agent registration & events                                |
+|     5      |      **Pass**       |   TCP    | `CYBER net` |    `10.30.30.10`     |    5044    | Beats log shipping (Winlogbeat / Filebeat)                       |
+|     6      | **Pass** (Disabled) | IPv4 Any | `CYBER net` |       `AD net`       |    Any     | **Lateral pivot rule** — enable only during pivoting drills      |
+|     7      |      **Block**      | IPv4 Any | `CYBER net` |      `MGMT net`      |    Any     | Isolate management plane from compromised targets                |
+|     8      |      **Block**      | IPv4 Any | `CYBER net` |    `MALWARE net`     |    Any     | Prevent targets from interacting with detonating malware         |
+|     9      |      **Block**      | IPv4 Any | `CYBER net` |    `SECURITY net`    |    Any     | Catch-all block for remaining SIEM ports                         |
+
+> [!NOTE]
+> Rule 2 excludes all private addresses, so CYBER hosts cannot reach the pfSense resolver at `10.10.10.1` through it. Rule 1 provides DNS; without it, name resolution fails even when rule 2 is enabled. When creating rule 2, set Source to `CYBER subnets`, Protocol to Any, and give it a description such as `Optional: CYBER internet for updates`.
 
 #### 3. Active Directory Interface (`AD` / `em3`)
 *Corporate enterprise network. Lateral egress to Cyber Range and Malware is prohibited.*
@@ -381,7 +405,7 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 | Rule Order |       Action        | Protocol |     Source     |  Destination  |      Port       | Purpose                                                   |
 | :--------: | :-----------------: | :------: | :------------: | :-----------: | :-------------: | :-------------------------------------------------------- |
 |     1      |      **Pass**       | TCP/UDP  |    `AD net`    | `10.30.30.10` | 514, 1514, 5044 | Forward Windows Event Logs & Sysmon to SIEM               |
-|     2      | **Pass** (Optional) | IPv4 Any | Approved Hosts |     `WAN`     |     80, 443     | Microsoft updates / time synchronization                  |
+|     2      | **Pass** (Optional) | IPv4 Any | Approved Hosts | **Internet** (`!RFC1918_Networks`) |     80, 443     | Microsoft updates / time synchronization                  |
 |     3      |      **Block**      | IPv4 Any |    `AD net`    |  `CYBER net`  |       Any       | AD cannot initiate unprompted scans into the attack range |
 |     4      |      **Block**      | IPv4 Any |    `AD net`    | `MALWARE net` |       Any       | Absolute isolation from malware detonation zone           |
 
@@ -391,14 +415,14 @@ During pfSense initial console setup or via **Interfaces → Assignments**:
 | Rule Order |  Action  | Protocol |     Source     |      Destination       |     Port     | Purpose                                                   |
 | :--------: | :------: | :------: | :------------: | :--------------------: | :----------: | :-------------------------------------------------------- |
 |     1      | **Pass** | IPv4 Any | `SECURITY net` | `Internal_Lab_Subnets` | Scoped Ports | Active polling, vulnerability scanning, and agent queries |
-|     2      | **Pass** | TCP/UDP  | `SECURITY net` |         `WAN`          |   80, 443    | Threat intelligence feed updates and SIEM rulesets        |
+|     2      | **Pass** | TCP/UDP  | `SECURITY net` | **Internet** (`!RFC1918_Networks`) |   80, 443    | Threat intelligence feed updates and SIEM rulesets        |
 
 #### 5. Malware Sandbox Interface (`MALWARE` / `em5`)
 *Default-deny quarantine zone. Zero WAN egress, zero lateral movement.*
 
 | Rule Order |      Action       | Protocol |    Source     |    Destination     |    Port     | Purpose                                             |
 | :--------: | :---------------: | :------: | :-----------: | :----------------: | :---------: | :-------------------------------------------------- |
-|     1      |     **Block**     | IPv4 Any | `MALWARE net` |       `WAN`        |     Any     | **Critical: Zero Internet egress**                  |
+|     1      |     **Block**     | IPv4 Any | `MALWARE net` | **Internet** (`!RFC1918_Networks`) |     Any     | **Critical: Zero Internet egress**                  |
 |     2      |     **Block**     | IPv4 Any | `MALWARE net` | `RFC1918_Networks` |     Any     | Prevent lateral spread into any internal lab subnet |
 |     3      | **Pass** (Narrow) | TCP/UDP  | `MALWARE net` |   `10.30.30.10`    | Scoped Port | Optional detonation telemetry pipe to SIEM          |
 
@@ -543,6 +567,7 @@ ping -c 3 192.168.56.2
 | `VBOX_E_INVALID_OBJECT_STATE (0x80bb0007)` / "machine is already locked for a session" | `modifyvm` run while the VM is running, saved, or being unlocked | Power off the VM completely (see below), then rerun the command |
 | `modifyvm` rejects `--nic7` or `--hostonlyadapter7` | Chipset/adapter limit, or `vboxnet0` does not exist | Check `VBoxManage list hostonlyifs`; optionally switch to `--chipset ich9`; on VirtualBox 7.x also check `list hostonlynets` |
 | `em6` appears but is `(down)` | Normal before configuration | Assign the interface and set the IP (Section 5.9) |
+| CYBER hosts cannot reach the internet although the "WAN" pass rule exists | Destination set to `WAN address` or `WAN subnets`, which match only the firewall's own WAN IP/network | Use Invert match with `RFC1918_Networks` (Section 5.4), and add the CYBER DNS rule |
 | `ping 192.168.56.2` fails after assignment | No pass rule on HOST_MGMT, or Kali not configured on `vboxnet0` | Add the HOST_MGMT pass rule; run `./lab-trusted.sh`; confirm Kali has `192.168.56.1/24` on `vboxnet0` |
 
 **Resolving the session lock**
