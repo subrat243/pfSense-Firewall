@@ -45,6 +45,15 @@ Follow the sequence below. Each guide includes prerequisites and a next step.
 | 5 | Deploy each workload only after its network policy is in place | [Segment guides](segments/README.md) |
 | 6 | Test allowed and blocked paths, then save a verified baseline | [Connectivity validation](validation/connectivity.md) · [Build checklist](validation/build-checklist.md) |
 
+### Kali HOST_MGMT Access
+
+When administering the lab from the physical Kali host, use
+[installation/lab-trusted.sh](installation/lab-trusted.sh) to bring up `vboxnet0`
+and route the lab subnets through pfSense. Run it after HOST_MGMT is configured
+and whenever temporary routes are missing; it requires `sudo` and does not make
+the routes persistent across reboots. See the [Kali network setup guide](installation/kali-network-setup.md)
+for prerequisites, usage, and verification.
+
 ## Segment Runbooks
 
 Each runbook has dedicated deployment, configuration, validation, and
