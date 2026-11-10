@@ -98,7 +98,7 @@ This guide lists common operational issues encountered during pfSense VirtualBox
 
 ### Issue 8: Client VM Kernel Panic on Boot (`Kernel panic - not syncing: No working init found`)
 
-![VirtualBox Linux Kernel Panic Diagnostic Screen](../screenshots/09-troubleshooting-kernel-panic.png)
+![VirtualBox Linux Kernel Panic Diagnostic Screen](../assets/screenshots/09-troubleshooting-kernel-panic.png)
 
 * **Symptom**: Client virtual machine (e.g. Linux guest) fails to boot, printing `Kernel panic - not syncing: No working init found. Try passing init= option to kernel.`
 * **Root Cause**: Virtual disk image corruption, missing/corrupted initramfs image, or improper CPU/storage controller attachment in VirtualBox.
