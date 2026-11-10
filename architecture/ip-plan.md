@@ -24,7 +24,7 @@ This document outlines the IP addressing scheme, CIDR subnetting, static gateway
 | **Cyber Range**| `em2` | `10.10.10.0/24` | `10.10.10.0` | `255.255.255.0` | `10.10.10.1` | `10.10.10.2 - 10.10.10.254` | `10.10.10.255` | `10.10.10.100 - 10.10.10.200` |
 | **Active Dir.** | `em3` | `10.20.20.0/24` | `10.20.20.0` | `255.255.255.0` | `10.20.20.1` | `10.20.20.2 - 10.20.20.254` | `10.20.20.255` | `10.20.20.100 - 10.20.20.200` |
 | **Security** | `em4` | `10.30.30.0/24` | `10.30.30.0` | `255.255.255.0` | `10.30.30.1` | `10.30.30.2 - 10.30.30.254` | `10.30.30.255` | `10.30.30.100 - 10.30.30.200` |
-| **Malware** | `em5` | `10.40.40.0/24` | `10.40.40.0` | `255.255.255.0` | `10.40.40.1` | `10.40.40.2 - 10.40.40.254` | `10.40.40.255` | `10.40.40.100 - 10.40.40.200` |
+| **Malware** | `em5` | `10.40.40.0/24` | `10.40.40.0` | `255.255.255.0` | `10.40.40.1` | `10.40.40.2 - 10.40.40.254` | `10.40.40.255` | Disabled; static addressing |
 | **HOST_MGMT** | OPT5* | `192.168.56.0/24` | `192.168.56.0` | `255.255.255.0` | `192.168.56.2` | `192.168.56.1 - 192.168.56.254` | `192.168.56.255` | Static; DHCP disabled |
 | **WG_REMOTE** | WireGuard* | `10.50.50.0/24` | `10.50.50.0` | `255.255.255.0` | `10.50.50.1` | `10.50.50.1 - 10.50.50.254` | `10.50.50.255` | Static peer addresses |
 
@@ -75,7 +75,8 @@ The physical Kali host is not addressed in this subnet. Laboratory administrativ
 * **Static Host Allocations**:
   * `10.40.40.10`: FLARE-VM / REMnux Analysis Workstation
   * `10.40.40.20`: Cuckoo / CAPEv2 Sandbox Node
-* **Routing Policy**: NO cross-subnet routing permitted. DNS requests conditionally intercepted or sinkholed by Unbound DNS.
+  * `10.40.40.30`: Optional local fake-internet simulator (INetSim / FakeNet-NG)
+* **Routing Policy**: No cross-subnet routing to other lab networks or WAN. Use only a local fake-DNS service on this segment when simulated name resolution is required; do not use pfSense Unbound or public DNS.
 
 Do not provide malware hosts with public DNS or WAN access. Prefer static addressing; if DHCP is required, point DNS only to an isolated INetSim/FakeNet-NG service on the same segment.
 
