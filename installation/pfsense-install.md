@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document guides you step-by-step through installing **pfSense CE 2.7.2** from ISO image onto the provisioned eight-adapter VirtualBox virtual machine. Create both host-only networks first as described in [Kali Host Network Setup](kali-network-setup.md).
+This document guides you step-by-step through installing **pfSense CE 2.7.2** from ISO image onto the provisioned seven-adapter VirtualBox virtual machine. Create the host-only network first as described in [Kali Host Network Setup](kali-network-setup.md).
 
 ## Related Documentation
 
@@ -61,7 +61,7 @@ During system boot, pfSense initializes network drivers and services:
 
 Once booted into pfSense OS, the text-based console menu displays:
 
-The following console output is illustrative and may show only interfaces already assigned. Adapter order and FreeBSD device names can vary; confirm the VirtualBox MAC-to-device mapping and assign all eight adapters using the [interface assignment guide](interface-assignment.md).
+The following console output is illustrative and may show only interfaces already assigned. Adapter order and FreeBSD device names can vary; confirm the VirtualBox MAC-to-device mapping and assign all seven adapters using the [interface assignment guide](interface-assignment.md).
 
 ![pfSense Console Initial Options Menu](../assets/screenshots/06-pfsense-console-menu-initial.png)
 
@@ -89,7 +89,7 @@ The following console output is illustrative and may show only interfaces alread
 - [x] pfSense boots cleanly without FreeBSD kernel panic.
 - [x] Console menu `0-16` appears successfully.
 - [x] Optical ISO drive detached.
-- [ ] Eight VirtualBox adapters are attached and mapped to their intended networks.
+- [ ] Seven VirtualBox adapters are attached and mapped to their intended networks.
 - [x] Ready for interface assignment.
 
 ---
