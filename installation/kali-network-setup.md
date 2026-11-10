@@ -8,6 +8,7 @@ Kali is the physical VirtualBox host, not a lab VM. Its host-only connection pro
 
 - [Repository overview](../README.md)
 - [VirtualBox provisioning](virtualbox.md)
+- [HOST_MGMT routing script](lab-trusted.sh)
 - [Interface assignment guide](interface-assignment.md)
 - [Firewall rule matrix](../configuration/firewall-rules.md)
 - [Connectivity validation](../validation/connectivity.md)
@@ -35,6 +36,37 @@ In VirtualBox, open **Tools → Network → Host-only Networks** and create/conf
 Attach pfSense Adapter 7 to `vboxnet0`. In pfSense, assign and enable the corresponding interface as HOST_MGMT (`192.168.56.2/24`). Do not set an upstream gateway on this interface. Verify interface-to-NIC mapping by MAC address; `em6` is an example, not a guarantee. See [VirtualBox provisioning](virtualbox.md) and [interface assignment](interface-assignment.md).
 
 ## Trusted Administration Routing
+
+### Why and when to use the script
+
+Kali is the VirtualBox host and cannot attach directly to the lab's internal
+networks. The `lab-trusted.sh` helper activates the HOST_MGMT host-only adapter,
+sets Kali's static `192.168.56.1/24` address, and installs routes for each lab
+subnet through pfSense at `192.168.56.2`. This lets the physical host administer
+the lab without adding Kali to any internal broadcast network.
+
+Run it when preparing a Kali host-only administration session, for example after
+rebooting or whenever the temporary routes are missing. It is not needed for
+administration from the Management VM or for a separately configured WireGuard
+connection. It changes the host's network configuration and requires `sudo`;
+review the script before running it. The routes are temporary and do not persist
+after reboot.
+
+### Run the script
+
+From the repository root, after creating `vboxnet0` and configuring pfSense
+HOST_MGMT as described above:
+
+```bash
+chmod +x installation/lab-trusted.sh
+./installation/lab-trusted.sh
+```
+
+The script requires the Linux `ip` command and a `vboxnet0` interface. It uses
+`ip route replace`, so rerunning it updates the same lab routes rather than
+creating duplicate entries.
+
+### Verify the access path
 
 Confirm the host-only interface is up and has its planned address:
 
