@@ -2,7 +2,7 @@
 
 ## Overview
 
-pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are stateful; once outbound traffic is allowed, return traffic is automatically permitted by the state table.
+pfSense processes firewall rules **top-to-bottom, first-match-wins**, and evaluates them on the interface where a connection **enters** pfSense. Rules are stateful: once a connection is allowed, return traffic is permitted by the state table.
 
 ## Related Documentation
 
@@ -16,103 +16,139 @@ pfSense processes firewall rules **top-to-bottom, first-match-wins**. Rules are 
 
 ---
 
-## Global Firewall Principles & Strategy
+## Global Firewall Principles
 
-1. **Default Deny**: pfSense has an implicit deny at the bottom of each interface ruleset. Add only the pass rules each segment needs.
-2. **Ingress Evaluation**: Rules are evaluated on the interface where a connection enters pfSense. A Cyber-to-AD policy belongs on CYBER, not AD.
-3. **Management**: MGMT is trusted for lab administration. HOST_MGMT is a separate, source-restricted path from physical Kali; do not put the host on a lab internal network.
-4. **Malware Containment**: MALWARE has no WAN or cross-segment pass rule. Explicit blocks document this critical boundary; keep them above any permitted local telemetry exception.
-5. **SIEM Telemetry**: Permit only the required source-to-SIEM-host ports, above any broader block. Confirm exact protocols and ports for the selected collector.
+1. **Default deny**: each interface has an implicit deny at the bottom. Add only the pass rules a segment needs.
+2. **Ingress evaluation**: a Cyber-to-AD policy belongs on CYBER, not AD.
+3. **Management**: MGMT administers the lab. HOST_MGMT is a separate, one-way path from the physical Kali host; nothing in the lab may initiate connections to it.
+4. **Protect the firewall itself**: every segment that is not an admin segment gets no access to `This Firewall` except DNS.
+5. **Malware containment**: MALWARE has no WAN or cross-segment pass rule. Keep the blocks explicit and logged.
+6. **SIEM telemetry**: allow only source-to-collector ports, above any broader block.
+7. **Logging**: enable logging on every block rule.
+8. **Optional rules** (updates, pivot drills) stay disabled until needed.
 
----
+## Required Aliases
 
-## Detailed Interface Rule Matrices
-
-### 1. Management Interface Rules (`em1` / MGMT)
-
-| Rule # | Action | Proto | Source | Port | Destination | Port | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Pass | IPv4 * | `MGMT net` | * | `Internal_Lab_Subnets` | * | Trusted management VM can administer lab segments |
-| **2** | Pass | TCP | `Admin_Hosts` | * | `MGMT Address` | `Management_Ports` | Allow approved administrators to reach pfSense WebGUI/SSH |
-| **3** | Pass | UDP/TCP | `MGMT net` | * | `MGMT Address` | `53` (DNS) | Allow management DNS queries |
-
-Avoid a broad `MGMT net -> any` pass rule if the intent is to protect the firewall itself; the implicit deny handles anything not explicitly allowed.
-
-### 2. Cyber Range / DMZ Interface Rules (`em2` / CYBER)
-
-The Cyber Range acts as the laboratory's **Demilitarized Zone (DMZ)**. It hosts publicly reachable workloads, web reverse proxies, and intentionally vulnerable targets. The foundational security rule of this DMZ is **zero-trust egress into internal enclaves**: DMZ systems are presumed compromised and can never initiate connections to internal protected networks.
-
-| Order | Action | Proto | Source | Destination | Port | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass (optional) | IPv4 * | `CYBER net` | WAN / non-RFC1918 | Required update ports | Scoped package updates / patching |
-| 2 | Pass | UDP | `CYBER net` | `SIEM_Collectors` | `514` | Syslog telemetry to SIEM |
-| 3 | Pass | TCP | `CYBER net` | `SIEM_Collectors` | `1514`, `1515`, `5044` | Wazuh agent / Beats telemetry |
-| 4 | Pass (disabled by default) | IPv4 * | `CYBER net` | `AD_NET` | Required AD ports | Controlled lateral pivot drill only |
-| 5 | Block | IPv4 * | `CYBER net` | `MGMT_NET` | * | DMZ containment: Protect the management plane |
-| 6 | Block | IPv4 * | `CYBER net` | `MALWARE_NET` | * | DMZ containment: Prevent access to malware sandbox |
-| 7 | Block | IPv4 * | `CYBER net` | `SECURITY_NET` | * | DMZ containment: Block everything except SIEM telemetry |
-
-Inbound access to published DMZ services (e.g. web traffic to SafeLine WAF or CTF targets) is permitted from administrative or testing sources and managed statefully by pfSense. Keep the SIEM telemetry allows above the Security block and scope destinations strictly to the collector address. Do not permanently enable the Cyber-to-AD pivot rule.
+All rules below reference aliases instead of raw IPs and ports. Create them first, exactly as named in [aliases.md](aliases.md).
 
 ---
 
-### 3. Active Directory Interface Rules (`em3` / AD)
+## Interface Rule Matrices
 
-| Order | Action | Proto | Source | Destination | Port | Description |
+### 1. MGMT (`em1`)
+
+| # | Action | Proto | Source | Destination | Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass | TCP | `AD net` | `SIEM_Collectors` | `1514`, `1515`, `5044` | Allow only configured Windows log forwarding |
-| 2 | Block | IPv4 * | `AD net` | `CYBER_NET` | * | AD must not reach the attack range unprompted |
-| 3 | Block | IPv4 * | `AD net` | `MALWARE_NET` | * | Prevent access to malware analysis |
-| 4 | Pass (optional) | IPv4 * | Approved AD hosts | WAN / non-RFC1918 | Required update ports | Enable only for controlled patching |
+| 1 | Pass | TCP | `Admin_Hosts` | This Firewall | `Management_Ports` | Approved admins reach WebGUI/SSH |
+| 2 | Pass | TCP/UDP | `MGMT_NET` | This Firewall | `53` | Management DNS |
+| 3 | Block | * | `MGMT_NET` | This Firewall | * | Stop access through other interface IPs |
+| 4 | Block | * | `MGMT_NET` | `HOST_MGMT_NET` | * | Keep the Kali link one-way |
+| 5 | Pass | * | `MGMT_NET` | `Internal_Lab_Subnets` | * | Administer lab segments |
+| 6 | Pass | TCP | `MGMT_NET` | `! RFC1918_Networks` | `Web_Ports` | Package updates |
 
-AD clients should use the domain controller (`10.20.20.10`) for DNS; that same-subnet traffic does not traverse pfSense. Avoid a broad AD-to-Internet allow rule.
+Delete the default IPv6 "LAN to any" rule if IPv6 is unused. Disable the anti-lockout rule (System → Advanced → Admin Access) only after HOST_MGMT access is confirmed, otherwise any MGMT host can still reach the WebGUI and rule 1 restricts nothing.
 
----
+### 2. CYBER / DMZ (`em2`)
 
-### 4. Security Operations Rules (`em4` / SECURITY)
+DMZ systems are presumed compromised and may never initiate connections into protected networks.
 
-| Order | Action | Proto | Source | Destination | Port | Description |
+| # | Action | Proto | Source | Destination | Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass | IPv4 * | Approved SIEM hosts | Required monitored hosts | Required service ports | Optional active polling; scope by source and destination |
-| 2 | Pass (optional) | TCP/UDP | SIEM hosts | WAN / non-RFC1918 | Required update/feed ports | Enable only when needed |
+| 1 | Pass | TCP/UDP | `CYBER_NET` | CYBER address | `53` | DNS (disable if targets do not need it) |
+| 2 | Pass | UDP | `CYBER_NET` | `SIEM_Collectors` | `514` | Syslog |
+| 3 | Pass | TCP | `CYBER_NET` | `SIEM_Collectors` | `SIEM_Agent_Ports` | Wazuh / Beats |
+| 4 | Pass (disabled) | TCP/UDP | `CYBER_NET` | `! RFC1918_Networks` | `Web_Ports` | Updates, enable only when patching |
+| 5 | Pass (disabled) | TCP/UDP | `CYBER_NET` | `Domain_Controllers` | `ActiveDirectory_Ports` | Controlled pivot drill only |
+| 6 | Block | * | `CYBER_NET` | `MGMT_NET` | * | Protect management plane |
+| 7 | Block | * | `CYBER_NET` | `MALWARE_NET` | * | Protect malware sandbox |
+| 8 | Block | * | `CYBER_NET` | `SECURITY_NET` | * | Only telemetry (rules 2-3) gets through |
 
-Passive Suricata/Zeek collection does not require a routed pass rule from each source segment. Configure VirtualBox promiscuous mode or a supported traffic-mirroring design separately; do not use a broad Security-to-all rule as a substitute.
+Never leave rule 5 enabled permanently.
 
----
+### 3. AD (`em3`)
 
-### 5. Malware Sandbox Rules (`em5` / MALWARE)
-
-| Order | Action | Proto | Source | Destination | Port | Description |
+| # | Action | Proto | Source | Destination | Port | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass (optional) | UDP/TCP | `MALWARE net` | Local fake-DNS host only | `53` | Use only with INetSim/FakeNet-NG in the malware segment |
-| 2 | Block | IPv4 * | `MALWARE net` | `MGMT_NET`, `CYBER_NET`, `AD_NET`, `SECURITY_NET`, `10.50.50.0/24` | * | Explicitly deny every protected routed network |
-| 3 | Block | IPv4 * | `MALWARE net` | WAN | * | **Critical: no Internet egress** |
+| 1 | Pass | TCP | `AD_NET` | `SIEM_Collectors` | `SIEM_Agent_Ports` | Windows log forwarding |
+| 2 | Pass (optional) | TCP/UDP | `Domain_Controllers` | This Firewall | `53` | DC DNS forwarding, only if used |
+| 3 | Block | * | `AD_NET` | `CYBER_NET` | * | AD must not reach the attack range |
+| 4 | Block | * | `AD_NET` | `MALWARE_NET` | * | Protect malware sandbox |
+| 5 | Pass (disabled) | TCP | `Domain_Controllers` | `! RFC1918_Networks` | `Web_Ports` | Patching only |
 
-Do not add an allow-to-non-RFC1918 rule, public DNS exception, NAT rule, or second malware VM NIC attached to NAT/bridged networking. The implicit deny blocks anything else. Keep samples offline from the host and transfer artifacts only using controlled read-only media or a quarantined workflow.
+AD clients use the domain controller (`10.20.20.10`) for DNS; that same-subnet traffic does not traverse pfSense.
 
-### 6. HOST_MGMT Rules (`em6`* / trusted Kali)
+### 4. SECURITY (`em4`)
 
-| Order | Action | Proto | Source | Destination | Description |
+| # | Action | Proto | Source | Destination | Port | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass | TCP/UDP | `SECURITY_NET` | This Firewall | `53` | DNS |
+| 2 | Pass | TCP/UDP | `SECURITY_NET` | `SIEM_Poll_Targets` | Required ports | Active polling, scoped to specific hosts |
+| 3 | Pass | TCP | `SECURITY_NET` | `! RFC1918_Networks` | `Web_Ports` | Threat intel and rule updates |
+
+Do not poll all of `Internal_Lab_Subnets`; that would give the sandbox a path into the SIEM network. Passive Suricata/Zeek capture needs no rule, only VirtualBox promiscuous mode or traffic mirroring.
+
+### 5. MALWARE (`em5`)
+
+| # | Action | Proto | Source | Destination | Port | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass (optional) | TCP/UDP | `MALWARE_NET` | Fake-DNS host in segment | `53` | INetSim / FakeNet-NG only |
+| 2 | Block | * | `MALWARE_NET` | This Firewall | * | No access to pfSense |
+| 3 | Block | * | `MALWARE_NET` | `Internal_Lab_Subnets`, `HOST_MGMT_NET`, `WG_REMOTE_NET` | * | No lateral movement |
+| 4 | Block | * | `MALWARE_NET` | any | * | **Critical: no Internet egress** |
+
+No NAT rule, no public DNS exception, and no second malware VM NIC on NAT/bridged networking. Transfer samples only by controlled read-only media or a quarantined workflow.
+
+### 6. HOST_MGMT (`em6`*)
+
+| # | Action | Proto | Source | Destination | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Pass | IPv4 * | `192.168.56.1/32` | `any` | Trusted physical Kali administration access |
+| 1 | Pass | * | `192.168.56.1/32` | any | Administrative channel for physical Kali |
 
-Use a static host address of `192.168.56.1` and pfSense address `192.168.56.2/24`. This rule provides complete laboratory administrative access from the dedicated physical host-only interface.
+Static host address `192.168.56.1`, pfSense address `192.168.56.2/24`. This is the recovery path: keep it working before tightening MGMT.
 
 \* `em6` is an example; verify interface mapping by MAC address.
 
-### 7. WireGuard Remote Access Rules (`WG_REMOTE`)
+### 7. WAN
 
-Assign the WireGuard tunnel under **Interfaces → Assignments**, enable it, and use `10.50.50.1/24` on the pfSense tunnel. A remote peer may use `10.50.50.2/32`. On the assigned interface, add only the resources the peer requires:
+| # | Action | Proto | Source | Destination | Port | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Pass | UDP | any | WAN address | `51820` | WireGuard handshake only |
 
-| Order | Action | Proto | Source | Destination | Port | Purpose |
+Do not expose the GUI, SSH, or dashboards on WAN. When WAN uses VirtualBox NAT/private addressing, disable **Block private networks** on this isolated lab WAN only. Keep it enabled on a genuine public WAN. See [NAT and port forwarding](nat.md) for the required port forwards.
+
+### 8. WireGuard Remote Access (`WG_REMOTE`)
+
+Assign the tunnel under **Interfaces → Assignments** with `10.50.50.1/24`; a remote peer may use `10.50.50.2/32`.
+
+| # | Action | Proto | Source | Destination | Port | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | Pass | TCP | `10.50.50.2/32` | `10.0.0.1` | `443` | pfSense WebGUI |
 | 2 | Pass | TCP | `10.50.50.2/32` | `10.0.0.10` | `22` | Management Ubuntu SSH |
 | 3 | Pass | TCP | `10.50.50.2/32` | `10.30.30.10` | `443` | Wazuh dashboard |
 | 4 | Pass (optional) | TCP | `10.50.50.2/32` | `10.30.30.10` | `22` | Wazuh administration, only if needed |
 
-Do not add `WG_REMOTE -> any`. On WAN, allow only inbound UDP `51820` to **WAN address** for the WireGuard handshake; do not expose GUI, SSH, or dashboard ports there. Configure the required VirtualBox and upstream-router UDP port forwards as described in [NAT and port forwarding](nat.md). When WAN uses VirtualBox NAT/private addressing, disable pfSense's WAN **Block private networks** option only for this isolated lab WAN. Keep it enabled on a genuine public WAN.
+Do not add `WG_REMOTE -> any`. Client `AllowedIPs = 10.0.0.0/24, 10.30.30.0/24, 10.50.50.0/24` for split tunneling. If the ISP uses CGNAT, inbound forwarding will not work; use an outbound tunnel or public VPN endpoint instead.
 
-Use client `AllowedIPs = 10.0.0.0/24, 10.30.30.0/24, 10.50.50.0/24` for split tunneling. Select the WAN gateway explicitly as the system default before assigning the WireGuard interface, then verify remote access from a genuinely external network. If the ISP uses CGNAT, inbound forwarding will not work; use an outbound tunnel or public VPN endpoint instead.
+---
 
-<!-- minimal update -->
+## Traffic Flow Summary
+
+| Flow | Result | Rule |
+| :--- | :--- | :--- |
+| Kali → any lab host | Allowed; replies via state table | HOST_MGMT 1 |
+| Any lab host → Kali | Blocked | MGMT 4, MALWARE 3, implicit deny elsewhere |
+| Admin VM → lab subnets | Allowed | MGMT 5 |
+| Non-admin MGMT host → pfSense GUI | Blocked (once anti-lockout is off) | MGMT 3 |
+| CYBER target → Wazuh agent ports | Allowed, collector IPs only | CYBER 2-3 |
+| CYBER target → SECURITY (other ports) | Blocked | CYBER 8 |
+| CYBER target → DC | Dropped (pivot rule disabled) | Implicit deny |
+| Malware sample → anywhere | Blocked and logged | MALWARE 2-4 |
+| Remote peer via WireGuard | Only the three listed services | WG_REMOTE 1-3 |
+
+## Rollout Checklist
+
+1. Create all aliases.
+2. Add the new rules below the existing ones and test each flow.
+3. Remove the old rules, then disable anti-lockout.
+4. Change the default `pfsense` password.
+5. Confirm blocks appear in **Status → System Logs → Firewall**.
